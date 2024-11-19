@@ -14,13 +14,15 @@ import SearchInput from "@/components/ui/SearchInput";
 import axios from "axios";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import LocationPicker from "../ui/LocationPicker";
 
 function Top() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [query, setQuery] = useState("default query");
-  const [startingPoint, setStartingPoint] = useState("35.6895,139.6917");
-  const [destination, setDestination] = useState("35.6895,139.6917");
+  // TODO(ogurash): Define setQuery, setStartingPoint, setDestination if necessary.
+  const [query, setQuery] = useState("");
+  const [startingPoint] = useState("35.6895,139.6917");
+  const [destination] = useState("35.6895,139.6917");
   const handleSearch = () => {
     const baseUrl =
       import.meta.env.MODE === "development" ? "http://127.0.0.1:5000" : "";
@@ -53,15 +55,16 @@ function Top() {
 
       {/* Input area */}
       <div className="flex justify-center pt-8">
-        <SearchInput placeholder="Explain your walking preference" />
+        <SearchInput
+          placeholder="Explain your walking preference"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
       </div>
       <div className="flex justify-center">
         <div className="flex flex-col justify-center pt-4">
           <div className="flex-none w-lg">
-            <Switch id="starting-point" />
-            <Label htmlFor="starting-point" className="pl-2">
-              Use current location as starting point
-            </Label>
+            <LocationPicker name="Starting point" />
           </div>
           <div className="flex-none w-lg pt-2">
             <Switch id="destination" />
