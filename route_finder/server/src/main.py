@@ -5,8 +5,13 @@ import logging
 from flask import Flask, send_from_directory, request, jsonify
 from request_response_data import SearchRequest, Location
 from mock_response import build_mock_response
+from flask_cors import CORS
+
 
 app = Flask(__name__, static_folder="dist", static_url_path="")
+
+# Allow CORS from the React app running locally on port 5173.
+CORS(app, resources={r"/search": {"origins": "http://localhost:5173"}})
 
 _logger = logging.getLogger(__name__)
 

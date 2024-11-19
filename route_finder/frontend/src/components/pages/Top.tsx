@@ -8,11 +8,40 @@ import {
 import { Label } from "@radix-ui/react-label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import SearchIcon from "@/components/ui/SearchIcon";
 import SearchInput from "@/components/ui/SearchInput";
+import axios from "axios";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 function Top() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [query, setQuery] = useState("default query");
+  const [startingPoint, setStartingPoint] = useState("35.6895,139.6917");
+  const [destination, setDestination] = useState("35.6895,139.6917");
+  const handleSearch = () => {
+    const baseUrl =
+      import.meta.env.MODE === "development" ? "http://127.0.0.1:5000" : "";
+    axios
+      .get(`${baseUrl}/search`, {
+        params: {
+          q: query,
+          s: startingPoint,
+          e: destination,
+        },
+      })
+      .then((response) => {
+        console.log(response.data);
+        navigate("/result", { state: response.data });
+      })
+      .catch((error) => {
+        console.log("axios error");
+        console.error(error);
+        toast({ title: "Failed to search", description: error.message });
+      });
+  };
   return (
     <div>
       <div className="flex justify-center">
@@ -43,10 +72,11 @@ function Top() {
         </div>
       </div>
       <div className="flex justify-center pt-4">
-        <Button className="bg-blue-500 text-white rounded-lg px-4 py-2 ml-2">
-          <Link to="/result" className="text-white">
-            Search
-          </Link>
+        <Button
+          className="bg-blue-500 text-white rounded-lg px-4 py-2 ml-2"
+          onClick={handleSearch}
+        >
+          Search
         </Button>
       </div>
       {/* Example queries */}
