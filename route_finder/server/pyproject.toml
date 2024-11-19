@@ -10,6 +10,8 @@ packages = [{include = "server", from = "src"}]
 python = "^3.13"
 flask = "^3.1.0"
 gunicorn = "^23.0.0"
+absl-py = "^2.1.0"
+flask-cors = "^5.0.0"
 
 
 [build-system]

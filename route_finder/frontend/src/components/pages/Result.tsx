@@ -15,8 +15,14 @@ import {
 } from "@/components/ui/carousel";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import SearchInput from "@/components/ui/SearchInput";
+import { useLocation } from "react-router-dom";
 
 function Result() {
+  const location = useLocation();
+  const state = location.state as any;
+  console.log(state);
+
+  // TODO(ogurash): Use the query from the state.
   const query = "Mostly shaded route to the nearest park";
   return (
     <div className="p-20">
