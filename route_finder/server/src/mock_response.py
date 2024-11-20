@@ -13,6 +13,10 @@ _DUMMY_DESCRIPTION = (
 def build_mock_response(request: SearchRequest) -> SearchResponse:
     return SearchResponse(
         request=request,
+        paragraphs=[
+            "This is a mock response paragraph. " * 3,
+            "This is another mock response paragraph." * 3,
+        ],
         routes=[
             Route(
                 title="Route with greenery",
