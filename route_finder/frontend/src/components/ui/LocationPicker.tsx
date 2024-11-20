@@ -4,6 +4,13 @@ import { Button } from "./button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./tabs";
 import { Input } from "./input";
 import { Label } from "@radix-ui/react-label";
+import axios from "axios";
+import {
+  AdvancedMarker,
+  APIProvider,
+  Map,
+  Pin,
+} from "@vis.gl/react-google-maps";
 
 type LocationPickerProps = {
   name: string;
@@ -14,27 +21,54 @@ type LocationPickerProps = {
 function LocationPicker({
   name,
   onLocationChange,
-  onLocationNameChange,
 }: LocationPickerProps): JSX.Element {
   const [locationSelected, setLocationSelected] = useState(false);
+  const [submittedLocationText, setSubmittedLocationText] = useState("");
   const [locationText, setLocationText] = useState("");
+  const [latitude, setLatitude] = useState(0);
+  const [longitude, setLongitude] = useState(0);
+
+  const handleLocationTextSubmit = () => {
+    // Goecoding to get latitude and longitude
+    axios
+      .get("https://maps.googleapis.com/maps/api/geocode/json", {
+        params: {
+          address: locationText,
+          key: import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "",
+        },
+      })
+      .then((response) => {
+        console.log(response.data);
+        if (
+          response.data.status !== "OK" ||
+          response.data.results.length === 0
+        ) {
+          console.error("Failed to get location");
+        } else {
+          const location = response.data.results[0].geometry.location;
+          setLatitude(location.lat);
+          setLongitude(location.lng);
+          setSubmittedLocationText(locationText);
+          console.log(location);
+          onLocationChange?.(location.lat, location.lng);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  };
 
   return (
     <Popover>
       <div className="flex items-center h-12">
         {name}:
         {locationSelected ? (
-          <PopoverTrigger asChild>
-            <Button
-              onClick={() => {
-                setLocationSelected(false);
-                onLocationChange?.(0, 0);
-                onLocationNameChange?.("");
-              }}
-            >
-              Clear
-            </Button>
-          </PopoverTrigger>
+          <div className="pl-2">
+            <span>{submittedLocationText}</span>
+            <PopoverTrigger asChild>
+              <Button> Change </Button>
+            </PopoverTrigger>
+          </div>
         ) : (
           <PopoverTrigger asChild>
             <button onClick={() => setLocationSelected(true)}>Select</button>
@@ -58,11 +92,36 @@ function LocationPicker({
               />
               <Button
                 onClick={() => {
-                  setLocationSelected(true);
-                  onLocationNameChange?.(locationText);
-                }}>update</Button>
+                  handleLocationTextSubmit();
+                }}
+              >
+                update
+              </Button>
             </TabsContent>
-            <TabsContent value="map">Map goes here</TabsContent>
+            <TabsContent value="map">
+              {latitude === 0 && longitude === 0 ? (
+                <div>Location is not selected</div>
+              ) : (
+                <div>
+                  <APIProvider
+                    apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? ""}
+                  >
+                    <Map
+                      defaultZoom={13}
+                      defaultCenter={{ lat: latitude, lng: longitude }}
+                      mapId={import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? ""}
+                      className="h-[240px] w-[240px]"
+                    >
+                      <AdvancedMarker
+                        position={{ lat: latitude, lng: longitude }}
+                      >
+                        <Pin />
+                      </AdvancedMarker>
+                    </Map>
+                  </APIProvider>
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
         </div>
       </PopoverContent>

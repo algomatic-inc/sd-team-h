@@ -1,7 +1,6 @@
 # Description: Main entry point for the server.
 
 import dataclasses
-import logging
 from flask import Flask, send_from_directory, request, jsonify
 from request_response_data import SearchRequest, Location
 from mock_response import build_mock_response
@@ -10,10 +9,10 @@ from flask_cors import CORS
 
 app = Flask(__name__, static_folder="dist", static_url_path="")
 
-# Allow CORS from the React app running locally on port 5173.
-CORS(app, resources={r"/search": {"origins": "http://localhost:5173"}})
+if app.debug:
+    # Allow CORS from the React app running in development mode.
+    CORS(app)
 
-_logger = logging.getLogger(__name__)
 
 _HTTP_400_BAD_REQUEST = 400
 
@@ -30,8 +29,9 @@ def search():
     query = request.args.get("q")
     start_location = request.args.get("s")
     end_location = request.args.get("e")
-    _logger.info(f"Query: {query}, Start: {start_location}, End: {end_location}")
+    app.logger.info(f"Query: {query}, Start: {start_location}, End: {end_location}")
 
+    # Validate the request.
     if not query or not start_location or not end_location:
         return (
             jsonify({"error": "Missing query, start, or end location."}),
@@ -47,10 +47,11 @@ def search():
         )
 
     req = SearchRequest(query, start_loc_obj, end_loc_obj)
-
     if not req:
         return jsonify({"error": "Invalid request."}), _HTTP_400_BAD_REQUEST
 
+    # Return the mock response for now.
+    # TODO: Implement the actual search logic.
     resp = build_mock_response(req)
     return jsonify(dataclasses.asdict(resp))
 

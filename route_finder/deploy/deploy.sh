@@ -14,7 +14,7 @@ CR_IMG="asia-northeast1-docker.pkg.dev/route-finder-442000/cr/route-finder-image
 
 push_to_gcp=false
 deploy_to_cloud_run=false
-while getopts g option
+while getopts gr option
 do
   case "${option}" in
     g) push_to_gcp=true;;

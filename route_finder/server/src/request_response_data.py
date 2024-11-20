@@ -63,4 +63,5 @@ class SearchResponse:
     """SearchResponse dataclass."""
 
     request: SearchRequest
+    paragraphs: list[str]
     routes: list[Route]
