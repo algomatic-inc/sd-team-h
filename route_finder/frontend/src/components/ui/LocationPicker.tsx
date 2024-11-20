@@ -21,7 +21,6 @@ type LocationPickerProps = {
 function LocationPicker({
   name,
   onLocationChange,
-  onLocationNameChange,
 }: LocationPickerProps): JSX.Element {
   const [locationSelected, setLocationSelected] = useState(false);
   const [submittedLocationText, setSubmittedLocationText] = useState("");
