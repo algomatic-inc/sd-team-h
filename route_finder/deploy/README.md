@@ -1,27 +1,6 @@
 # Deployment to GCP
 
-## Build Docker image
-
-### Just locally
-
-```shell
-$ ./deploy.sh
-
-# Run it for testing
-$ docker run -e "PORT=8080" -p "8080:8080" testing-linux
-```
-
-### Push it to GCP Artifact Registry
-
-```shell
-$ ./deploy.sh -g
-```
-
-### Push it to Cloud Run
-
-```shell
-$ ./deploy.sh -g -r
-```
+Please check README.md in the root directory for the overall deployment flow.
 
 ## MEMO: Set up GCP artifact registry
 

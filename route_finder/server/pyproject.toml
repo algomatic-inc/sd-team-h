@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "server", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = "^3.12"
 flask = "^3.1.0"
 gunicorn = "^23.0.0"
 absl-py = "^2.1.0"
