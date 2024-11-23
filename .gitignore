@@ -1,0 +1,6 @@
+*.osm
+*.pbf
+*.geojson
+
+.DS_STORE
+.idea
