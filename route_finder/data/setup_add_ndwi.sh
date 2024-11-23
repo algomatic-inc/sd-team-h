@@ -2,7 +2,6 @@
 
 TIF_FILE="satellite/2018-12-14_54SUE_NDWI_3320.tif"
 REPROJECTED_TIF="satellite/2018-12-14_54SUE_NDWI_4326.tif"
-SCALED_TIF="satellite/2018-12-14_54SUE_NDWI_4326_scaled.tif"
 DB_NAME="tokyo_routing"
 DB_USER="postgres"
 RASTER_TABLE="public.ndwi_raster"
@@ -11,23 +10,8 @@ COLUMN_NAME="water_index"
 echo "Reprojecting the raster to EPSG:4326..."
 gdalwarp -t_srs EPSG:4326 "$TIF_FILE" "$REPROJECTED_TIF" || { echo "Reprojection failed"; exit 1; }
 
-echo "Calculating NDWI min and max values..."
-NDWI_STATS=$(gdalinfo -mm "$REPROJECTED_TIF" | grep "Computed Min/Max" | sed 's/[^0-9.,-]*//g')
-MIN_NDWI=$(echo "$NDWI_STATS" | cut -d',' -f1)
-MAX_NDWI=$(echo "$NDWI_STATS" | cut -d',' -f2)
-
-echo "NDWI Min: $MIN_NDWI, NDWI Max: $MAX_NDWI"
-
-echo "Scaling NDWI values to range [0, 1]..."
-gdal_calc.py \
-    -A "$REPROJECTED_TIF" \
-    --outfile="$SCALED_TIF" \
-    --calc="(A - $MIN_NDWI) / ($MAX_NDWI - $MIN_NDWI)" \
-    --NoDataValue=-9999 \
-    --type=Float32 --overwrite || { echo "Scaling failed"; exit 1; }
-
-echo "Importing the scaled raster into the PostGIS database..."
-raster2pgsql -s 4326 -I -C -M "$SCALED_TIF" "$RASTER_TABLE" | psql -U "$DB_USER" -d "$DB_NAME" || { echo "Raster import failed"; exit 1; }
+echo "Importing the reprojected raster into the PostGIS database..."
+raster2pgsql -s 4326 -I -C -M "$REPROJECTED_TIF" "$RASTER_TABLE" | psql -U "$DB_USER" -d "$DB_NAME" || { echo "Raster import failed"; exit 1; }
 
 echo "Adding the '$COLUMN_NAME' column to the 'ways' table and calculating its values..."
 psql -U "$DB_USER" -d "$DB_NAME" -c "
@@ -48,4 +32,4 @@ FROM ndwi_values
 WHERE ways.gid = ndwi_values.way_id;
 " || { echo "Update operation failed"; exit 1; }
 
-echo "Normalized NDWI data has been successfully added to the database."
+echo "NDWI data has been successfully added to the database."
