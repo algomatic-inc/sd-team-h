@@ -9,6 +9,7 @@ This is the frontend for the Route Finder project. This helps users to find rout
 - Vite
 - ESLint
 - shadcn/ui
+- storybook
 
 ## Getting Started
 
@@ -33,6 +34,13 @@ This project uses [shadcn/ui](https://ui.shadcn.com) for UI components. To add a
 npx shadcn@latest add button
 ```
 
+## Storybook
+
+This project uses Storybook for UI component development. To start the Storybook server, run:
+
+```bash
+npm run storybook
+```
 
 # Auto generated content
 

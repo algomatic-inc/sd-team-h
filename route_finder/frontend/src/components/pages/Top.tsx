@@ -14,15 +14,18 @@ import SearchInput from "@/components/ui/SearchInput";
 import axios from "axios";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import LocationPicker from "../ui/LocationPicker";
+import { LocationPicker } from "../ui/LocationPicker";
+import { Location } from "@/lib/SearchResponse";
 
 function Top() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  // TODO(ogurash): Define setQuery, setStartingPoint, setDestination if necessary.
   const [query, setQuery] = useState("");
-  const [startingPoint] = useState("35.6895,139.6917");
-  const [destination] = useState("35.6895,139.6917");
+  const [startLocation, setStartLocation] = useState<Location | undefined>();
+  const [endLocation, setEndLocation] = useState<Location | undefined>();
+
+  const readyForSearch =
+    query.length > 0 && startLocation != null && endLocation != null;
   const handleSearch = () => {
     const baseUrl =
       import.meta.env.MODE === "development" ? "http://127.0.0.1:5000" : "";
@@ -30,8 +33,8 @@ function Top() {
       .get(`${baseUrl}/search`, {
         params: {
           q: query,
-          s: startingPoint,
-          e: destination,
+          s: `${startLocation?.latitude},${startLocation?.longitude}`,
+          e: `${endLocation?.latitude},${endLocation?.longitude}`,
         },
       })
       .then((response) => {
@@ -64,23 +67,31 @@ function Top() {
       <div className="flex justify-center">
         <div className="flex flex-col justify-center pt-4">
           <div className="flex-none w-lg">
-            <LocationPicker name="Starting point" />
-          </div>
-          <div className="flex-none w-lg pt-2">
-            <Switch id="destination" />
-            <Label htmlFor="destination" className="pl-2">
-              Set destination via map
-            </Label>
+            <LocationPicker
+              startLocation={startLocation}
+              endLocation={endLocation}
+              onStartLocationChange={setStartLocation}
+              onEndLocationChange={setEndLocation}
+            />
           </div>
         </div>
       </div>
       <div className="flex justify-center pt-4">
-        <Button
-          className="bg-blue-500 text-white rounded-lg px-4 py-2 ml-2"
-          onClick={handleSearch}
-        >
-          Search
-        </Button>
+        {readyForSearch ? (
+          <Button
+            className="bg-blue-500 text-white rounded-lg px-4 py-2 ml-2"
+            onClick={handleSearch}
+          >
+            Search
+          </Button>
+        ) : (
+          <Button
+            className="bg-blue-300 text-white rounded-lg px-4 py-2 ml-2"
+            disabled
+          >
+            Search
+          </Button>
+        )}
       </div>
       {/* Example queries */}
 
