@@ -7,6 +7,7 @@ SQL="
 CREATE OR REPLACE FUNCTION generate_route(
     weight_length DOUBLE PRECISION,
     weight_green_index DOUBLE PRECISION,
+    weight_water_index DOUBLE PRECISION,
     source_node INTEGER,
     target_node INTEGER,
     output_file TEXT
@@ -23,10 +24,13 @@ BEGIN
       target,
       length,
       green_index,
+      water_index,
       -- Normalize length
       (length - MIN(length) OVER()) / (MAX(length) OVER() - MIN(length) OVER()) AS norm_length,
       -- Normalize green_index (reversed)
-      1 - ((green_index - MIN(green_index) OVER()) / (MAX(green_index) OVER() - MIN(green_index) OVER())) AS inverse_green_index
+      1 - ((green_index - MIN(green_index) OVER()) / (MAX(green_index) OVER() - MIN(green_index) OVER())) AS inverse_green_index,
+      -- Normalize and reverse water_index
+      1 - ((water_index - MIN(water_index) OVER()) / (MAX(water_index) OVER() - MIN(water_index) OVER())) AS inverse_water_index
     FROM ways
   ),
   composite_cost_table AS (
@@ -37,7 +41,11 @@ BEGIN
       target,
       norm_length,
       inverse_green_index,
-      (' || weight_length || ' * norm_length) + (' || weight_green_index || ' * inverse_green_index) AS composite_cost
+      inverse_water_index,
+      (' || weight_length || ' * norm_length) +
+      (' || weight_green_index || ' * inverse_green_index) +
+      (' || weight_water_index || ' * inverse_water_index)
+    AS composite_cost
     FROM norm_tables
   )
   SELECT
@@ -68,8 +76,8 @@ BEGIN
                composite_cost AS cost
         FROM dynamic_route
       '',
-      ' || source_node || ', -- Source node
-      ' || target_node || ', -- Target node
+      ' || source_node || ',
+      ' || target_node || ',
       directed := false
     ) AS path
     JOIN dynamic_route w ON path.edge = w.gid
@@ -85,5 +93,4 @@ END;
 "
 
 psql -U "$DB_USER" -d "$DB_NAME" -c "$SQL"
-
 echo "Function generate_route has been added to the database $DB_NAME."
