@@ -26,6 +26,23 @@ def build_mock_response(request: SearchRequest) -> SearchResponse:
                     Location(35.681236, 139.767125),
                     Location(35.681236, 139.767125),
                 ],
+                path_geo_json={
+                    "type": "FeatureCollection",
+                    "features": [
+                        {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "LineString",
+                                "coordinates": [
+                                    [139.767125, 35.681236],
+                                    [139.767125, 35.681236],
+                                    [139.767125, 35.681236],
+                                ],
+                            },
+                        }
+                    ],
+                },
                 places=[
                     Place(
                         name="Starting point",
@@ -59,6 +76,23 @@ def build_mock_response(request: SearchRequest) -> SearchResponse:
                     Location(35.681236, 139.767125),
                     Location(35.681236, 139.767125),
                 ],
+                path_geo_json={
+                    "type": "FeatureCollection",
+                    "features": [
+                        {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "LineString",
+                                "coordinates": [
+                                    [139.767125, 35.681236],
+                                    [139.767125, 35.681236],
+                                    [139.767125, 35.681236],
+                                ],
+                            },
+                        }
+                    ],
+                },
                 places=[
                     Place(
                         name="Starting point",

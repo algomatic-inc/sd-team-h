@@ -43,6 +43,7 @@ class Route:
     description: str
     # This is a list of locations that make up the route, sorted from start to end.
     paths: list[Location]
+    path_geo_json: dict
     places: list[Place]
     distance_in_meter: float
     # We consider only walking time.
