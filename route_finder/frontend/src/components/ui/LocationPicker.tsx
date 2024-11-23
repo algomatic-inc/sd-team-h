@@ -9,7 +9,6 @@ import {
 } from "@vis.gl/react-google-maps";
 import { QuestionPin } from "./icons/QuestionPin";
 import { CheckedPin } from "./icons/CheckedPin";
-import { strict } from "assert";
 
 type LocationPickerProps = {
   startLocation?: Location;
