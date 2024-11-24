@@ -64,7 +64,6 @@ def search():
 
     # add explanation
     res = add_explanation(query, data_geojson_str)
-    print(res)
 
     # Return the mock response for now.
     # TODO: Implement the actual search logic.
