@@ -1,6 +1,8 @@
 # Description: Main entry point for the server.
 
 import dataclasses
+import time
+
 from flask import Flask, send_from_directory, request, jsonify
 from request_response_data import SearchRequest, Location
 from mock_response import build_mock_response
@@ -29,6 +31,8 @@ def search():
     query = request.args.get("q")
     start_location = request.args.get("s")
     end_location = request.args.get("e")
+    # Delay seconds for emulating server delay.
+    delay = request.args.get("delay")
     app.logger.info(f"Query: {query}, Start: {start_location}, End: {end_location}")
 
     # Validate the request.
@@ -49,6 +53,10 @@ def search():
     req = SearchRequest(query, start_loc_obj, end_loc_obj)
     if not req:
         return jsonify({"error": "Invalid request."}), _HTTP_400_BAD_REQUEST
+
+    if app.debug and delay:
+        app.logger.info(f"Delaying response by {delay} seconds.")
+        time.sleep(int(delay))
 
     # Return the mock response for now.
     # TODO: Implement the actual search logic.

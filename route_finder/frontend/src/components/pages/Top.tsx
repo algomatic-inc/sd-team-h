@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import SearchIcon from "@/components/ui/icons/SearchIcon";
 import SearchInput from "@/components/ui/SearchInput";
 import axios from "axios";
-import { CSSProperties, useState } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { LocationPicker } from "../ui/LocationPicker";
 import { Location } from "@/lib/SearchResponse";
