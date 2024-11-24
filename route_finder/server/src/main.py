@@ -1,8 +1,12 @@
 # Description: Main entry point for the server.
 import dataclasses
+<<<<<<< HEAD
+import time
+=======
 import json
 
 from typing import Any
+>>>>>>> main
 
 from flask import Flask, send_from_directory, request, jsonify
 from request_response_data import SearchRequest, Location, SearchResponse
@@ -34,6 +38,8 @@ def search():
     query: str | None = request.args.get("q")
     start_location: str | None = request.args.get("s")
     end_location: str | None = request.args.get("e")
+    # Delay seconds for emulating server delay.
+    delay: str | None = request.args.get("delay")
     app.logger.info(f"Query: {query}, Start: {start_location}, End: {end_location}")
 
     # Validate the request.
@@ -54,6 +60,10 @@ def search():
     req: SearchRequest | None = SearchRequest(query, start_loc_obj, end_loc_obj)
     if req is None:
         return jsonify({"error": "Invalid request."}), _HTTP_400_BAD_REQUEST
+
+    if app.debug and delay:
+        app.logger.info(f"Delaying response by {delay} seconds.")
+        time.sleep(int(delay))
 
     # get routes
     # TODO: call the sefa's function.

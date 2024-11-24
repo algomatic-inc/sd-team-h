@@ -65,7 +65,7 @@ export function LocationPicker({
           </div>
         </PopoverTrigger>
       </div>
-      <PopoverContent>
+      <PopoverContent className="w-[400px]">
         <div className="flex items-center">
           <div>
             <APIProvider
@@ -84,7 +84,7 @@ export function LocationPicker({
                 fullscreenControl={false}
                 mapId={import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? ""}
                 restriction={mapRestriction}
-                className="h-[240px] w-[240px]"
+                className="h-[360px] w-[360px]"
                 onClick={(event: MapMouseEvent) => {
                   const latLng = event.detail.latLng;
                   if (latLng == null) {
