@@ -5,22 +5,28 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { Label } from "@radix-ui/react-label";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import SearchIcon from "@/components/ui/icons/SearchIcon";
 import SearchInput from "@/components/ui/SearchInput";
 import axios from "axios";
-import { useState } from "react";
+import { CSSProperties, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { LocationPicker } from "../ui/LocationPicker";
 import { Location } from "@/lib/SearchResponse";
+import { LoadingSpinner } from "../ui/LoadingSpinner";
+
+const BOUNDING_BOX = {
+  // 35.7517,139.64131,35.8247,139.7316
+  southWest: { latitude: 35.7517, longitude: 139.64131 },
+  northEast: { latitude: 35.8247, longitude: 139.7316 },
+};
 
 function Top() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
   const [startLocation, setStartLocation] = useState<Location | undefined>();
   const [endLocation, setEndLocation] = useState<Location | undefined>();
 
@@ -29,12 +35,14 @@ function Top() {
   const handleSearch = () => {
     const baseUrl =
       import.meta.env.MODE === "development" ? "http://127.0.0.1:5000" : "";
+    setLoading(true);
     axios
       .get(`${baseUrl}/search`, {
         params: {
           q: query,
           s: `${startLocation?.latitude},${startLocation?.longitude}`,
           e: `${endLocation?.latitude},${endLocation?.longitude}`,
+          delay: 5,
         },
       })
       .then((response) => {
@@ -45,10 +53,14 @@ function Top() {
         console.log("axios error");
         console.error(error);
         toast({ title: "Failed to search", description: error.message });
+      })
+      .finally(() => {
+        setLoading(false);
       });
   };
   return (
     <div>
+      <LoadingSpinner loading={loading} />
       <div className="flex justify-center">
         <h1>Welcome to Route Planner</h1>
       </div>
@@ -72,6 +84,8 @@ function Top() {
               endLocation={endLocation}
               onStartLocationChange={setStartLocation}
               onEndLocationChange={setEndLocation}
+              southWestBound={BOUNDING_BOX.southWest}
+              northEastBound={BOUNDING_BOX.northEast}
             />
           </div>
         </div>
