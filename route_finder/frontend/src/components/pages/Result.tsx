@@ -5,7 +5,7 @@ import {
   Pin,
   useMap,
 } from "@vis.gl/react-google-maps";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
   Carousel,
   CarouselContent,
@@ -17,6 +17,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import SearchInput from "@/components/ui/SearchInput";
 import { useLocation } from "react-router-dom";
 import { parseResponse, SearchResponse } from "@/lib/SearchResponse";
+import { RouteMap } from "../ui/RouteMap";
 
 function buildDefaultResponse(): SearchResponse {
   return {
@@ -76,10 +77,10 @@ function Result(): JSX.Element {
   const searchResponse = parseResponse(state) ?? buildDefaultResponse();
   console.log(searchResponse);
 
-  const topRoute =
-    searchResponse.routes.length === 0 ? null : searchResponse.routes[0];
+  const [selectedRoute, setSelectedRoute] = useState(
+    searchResponse.routes.length > 0 ? searchResponse.routes[0] : null
+  );
 
-  // TODO(ogurash): Use the query from the state.
   return (
     <div className="w-full">
       <div className="flex justify-center">
@@ -96,37 +97,22 @@ function Result(): JSX.Element {
             ))}
           </div>
           {/* Main result area */}
-          {topRoute === null ? (
+          {selectedRoute === null ? (
             <div className="pt-4">
               <p>No route found.</p>
             </div>
           ) : (
-            <div>
-              <div>
-                <RouteCandidate
-                  name={topRoute.title}
-                  description={topRoute.description}
-                  points={topRoute.places.map((place) => ({
-                    key: place.name,
-                    location: {
-                      lat: place.location.latitude,
-                      lng: place.location.longitude,
-                    },
-                    description: place.description,
-                    type:
-                      place.name === "Your current location"
-                        ? "start"
-                        : place.name === "Ryuhoku Park"
-                        ? "end"
-                        : "waypoint",
-                  }))}
-                />
+            <div className="pt-8">
+              <div className="text-lg font-medium">{selectedRoute.title}</div>
+              <div className="">{selectedRoute.description}</div>
+              <div className="pt-4">
+                <RouteMap route={selectedRoute} />
               </div>
             </div>
           )}
 
           {/* Other candidates */}
-          <div>
+          <div className="pt-8">
             <div>Other route candidates:</div>
             <Carousel
               opts={{ align: "start" }}
@@ -164,84 +150,6 @@ function Result(): JSX.Element {
           <div className="pt-4 w-[240pt]">
             <div>Explore more:</div>
             <SearchInput placeholder="Search for more routes" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-type RoutePoint = {
-  key: string;
-  location: google.maps.LatLngLiteral;
-  description: string;
-  type: "start" | "end" | "waypoint";
-};
-
-type RouteCandidateProps = {
-  name: string;
-  description: string;
-  points: RoutePoint[];
-};
-
-function RouteCandidate({ name, description, points }: RouteCandidateProps) {
-  const map = useMap();
-  const selectPointHandler = (point: RoutePoint) => {
-    console.log(point);
-    console.log(map === null);
-    map?.setCenter(point.location);
-  };
-  const pinClickHandler = useCallback(
-    (ev: google.maps.MapMouseEvent) => {
-      if (!map) return;
-      if (ev.latLng) {
-        console.log(ev.latLng.toJSON());
-        map.setCenter(ev.latLng);
-        map.panTo(ev.latLng);
-      }
-    },
-    [map]
-  );
-  const routePins = points.map((point) => (
-    <AdvancedMarker
-      key={point.key}
-      position={point.location}
-      clickable={true}
-      onClick={pinClickHandler}
-    >
-      <Pin />
-    </AdvancedMarker>
-  ));
-  const routeDescriptions = points.map((point) => (
-    <div className="flex" onClick={() => selectPointHandler(point)}>
-      <img
-        src="https://upload.wikimedia.org/wikipedia/commons/d/d1/Google_Maps_pin.svg"
-        alt="pin"
-        className="h-8 w-8"
-      />
-      <p>{point.description}</p>
-    </div>
-  ));
-  return (
-    <div className="w-[840px] pt-4">
-      <div className="text-lg font-medium">{name}</div>
-      <div className="font-light">{description}</div>
-      <div className="h-[400px] pt-4">
-        <div className="flex">
-          <div className="flex flex-col gap-4 pr-4">{routeDescriptions}</div>
-          <div className="justify-items-end">
-            <APIProvider
-              apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? ""}
-            >
-              <Map
-                defaultZoom={13}
-                defaultCenter={{ lat: 35.6974952, lng: 139.7859834 }}
-                mapId={import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? ""}
-                className="h-[240px] w-[240px]"
-              >
-                {routePins}
-              </Map>
-            </APIProvider>
           </div>
         </div>
       </div>

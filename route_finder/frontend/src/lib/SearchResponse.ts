@@ -15,6 +15,7 @@ export type Route = {
   title: string;
   description: string;
   paths: Location[];
+  pathGeoJson?: object;
   places: Place[];
   distanceInMeter: number;
   walkingDurationInMinutes: number;
@@ -51,6 +52,14 @@ function parseRequest(data: any): SearchRequest | null {
 }
 
 export function parseResponse(data: any): SearchResponse | null {
+  if (
+    !data.hasOwnProperty("request") ||
+    !data.hasOwnProperty("paragraphs") ||
+    !data.hasOwnProperty("routes")
+  ) {
+    console.log("missing some fields in response");
+    return null;
+  }
   const request = parseRequest(data.request);
   if (!request) {
     return null;
@@ -63,9 +72,11 @@ export function parseResponse(data: any): SearchResponse | null {
         !route.hasOwnProperty("description") ||
         !route.hasOwnProperty("paths") ||
         !route.hasOwnProperty("places") ||
+        !route.hasOwnProperty("path_geo_json") ||
         !route.hasOwnProperty("distance_in_meter") ||
         !route.hasOwnProperty("walking_duration_in_minutes")
       ) {
+        console.log("missing some fields in route");
         return null;
       }
       return {
@@ -74,6 +85,7 @@ export function parseResponse(data: any): SearchResponse | null {
         // TODO(ogurash): Check them.
         paths: route.paths,
         places: route.places,
+        pathGeoJson: route.path_geo_json,
         distanceInMeter: route.distance_in_meter,
         walkingDurationInMinutes: route.walking_duration_in_minutes,
       };

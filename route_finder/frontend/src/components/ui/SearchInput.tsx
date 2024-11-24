@@ -1,5 +1,5 @@
 import { Input } from "./input";
-import SearchIcon from "./SearchIcon";
+import SearchIcon from "./icons/SearchIcon";
 
 type SearchInputProps = {
   placeholder: string;
