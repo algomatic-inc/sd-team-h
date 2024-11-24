@@ -1,12 +1,19 @@
 # Description: Main entry point for the server.
-
 import dataclasses
+<<<<<<< HEAD
 import time
+=======
+import json
+
+from typing import Any
+>>>>>>> main
 
 from flask import Flask, send_from_directory, request, jsonify
-from request_response_data import SearchRequest, Location
+from request_response_data import SearchRequest, Location, SearchResponse
 from mock_response import build_mock_response
 from flask_cors import CORS
+
+from server.add_explanation import add_explanation
 
 
 app = Flask(__name__, static_folder="dist", static_url_path="")
@@ -28,11 +35,11 @@ def server():
 @app.route("/search")
 def search():
     """Search API endpoint."""
-    query = request.args.get("q")
-    start_location = request.args.get("s")
-    end_location = request.args.get("e")
+    query: str | None = request.args.get("q")
+    start_location: str | None = request.args.get("s")
+    end_location: str | None = request.args.get("e")
     # Delay seconds for emulating server delay.
-    delay = request.args.get("delay")
+    delay: str | None = request.args.get("delay")
     app.logger.info(f"Query: {query}, Start: {start_location}, End: {end_location}")
 
     # Validate the request.
@@ -42,25 +49,35 @@ def search():
             _HTTP_400_BAD_REQUEST,
         )
 
-    start_loc_obj = Location.from_str(start_location)
-    end_loc_obj = Location.from_str(end_location)
-    if not start_loc_obj or not end_loc_obj:
+    start_loc_obj: Location | None = Location.from_str(start_location)
+    end_loc_obj: Location | None = Location.from_str(end_location)
+    if start_loc_obj is None or end_loc_obj is None:
         return (
             jsonify({"error": "Invalid start or end location."}),
             _HTTP_400_BAD_REQUEST,
         )
 
-    req = SearchRequest(query, start_loc_obj, end_loc_obj)
-    if not req:
+    req: SearchRequest | None = SearchRequest(query, start_loc_obj, end_loc_obj)
+    if req is None:
         return jsonify({"error": "Invalid request."}), _HTTP_400_BAD_REQUEST
 
     if app.debug and delay:
         app.logger.info(f"Delaying response by {delay} seconds.")
         time.sleep(int(delay))
 
+    # get routes
+    # TODO: call the sefa's function.
+    data_geojson: Any = None
+
+    # parse data to string
+    data_geojson_str: str = json.dumps(data_geojson)
+
+    # add explanation
+    res = add_explanation(query, data_geojson_str)
+
     # Return the mock response for now.
     # TODO: Implement the actual search logic.
-    resp = build_mock_response(req)
+    resp: SearchResponse = build_mock_response(req)
     return jsonify(dataclasses.asdict(resp))
 
 
