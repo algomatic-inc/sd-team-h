@@ -10,13 +10,13 @@ createdb $DB_NAME
 
 psql -U $DB_USER -d $DB_NAME << EOF
 CREATE EXTENSION postgis;
-CREATE EXTENSION postgis_raster;
 CREATE EXTENSION hstore;
 CREATE EXTENSION pgrouting;
+CREATE EXTENSION postgis_raster;
 EOF
 
-# todo: from overpass is not good. There seems to be something wrong with the data. Downlaod from geofabrik and convert to .osm
-#wget --progress=dot:mega -O "${CITY}.osm" "http://overpass-api.de/api/interpreter?data=[out:xml];(node(${BBOX});way(${BBOX});relation(${BBOX}););out meta;"
+#wget -O "${CITY}.osm.pbf" "https://download.geofabrik.de/asia/japan/kanto-latest.osm.pbf"
+# todo: add crop function with osmium and convert to .osm
 
 osm2pgrouting \
     -f "${CITY}.osm" \
@@ -25,5 +25,30 @@ osm2pgrouting \
     -U $DB_USER \
     -W $DB_PASSWORD \
     --clean
+
+STYLE_FILE="default.style"
+
+osm2pgsql -d $DB_NAME \
+          --create \
+          --slim \
+          -S "$STYLE_FILE" \
+          "${CITY}.osm"
+
+psql -U $DB_USER -d $DB_NAME << EOF
+CREATE TABLE landmarks (
+    id SERIAL PRIMARY KEY,
+    name TEXT,
+    type TEXT,
+    geom GEOMETRY(Point, 4326)
+);
+
+INSERT INTO landmarks (name, type, geom)
+SELECT
+    name,
+    COALESCE(tourism, amenity, historic, shop, 'unknown') AS type,
+    ST_Transform(way, 4326)
+FROM planet_osm_point
+WHERE tourism IS NOT NULL OR amenity IS NOT NULL OR historic IS NOT NULL OR shop IS NOT NULL;
+EOF
 
 echo "Database setup complete!"
