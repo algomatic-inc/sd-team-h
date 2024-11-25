@@ -6,15 +6,31 @@ DB_PASSWORD="postgres"
 CITY="tokyo"
 BBOX="35.7517,139.64131,35.8247,139.7316"
 
-createdb $DB_NAME
+# install extentions & tools
+echo "Installing extentions & tools."
+apt update &&
+apt install -y postgis postgresql-16-postgis-3 postgresql-16-pgrouting &&
+apt install -y osm2pgrouting osm2pgsql &&
+echo "Extentions & tools installed."
 
+# create database
+echo "Creating database."
+psql -U $DB_USER -c "CREATE DATABASE $DB_NAME;"
+# createdb $DB_NAME
+echo "Database created."
+
+# create extentions
+echo "Creating extentions."
 psql -U $DB_USER -d $DB_NAME << EOF
 CREATE EXTENSION postgis;
 CREATE EXTENSION hstore;
 CREATE EXTENSION pgrouting;
 CREATE EXTENSION postgis_raster;
 EOF
+echo "Extentions created."
 
+# configure pgrouting
+echo "Configuring pgrouting."
 osm2pgrouting \
     -f "${CITY}.osm" \
     -c "mapconfig_for_pedestrian.xml" \
@@ -22,15 +38,23 @@ osm2pgrouting \
     -U $DB_USER \
     -W $DB_PASSWORD \
     --clean
+echo "Pgrouting configured."
 
+# configure osm2pgsql
+echo "Configuring osm2pgsql."
 STYLE_FILE="default.style"
 
-osm2pgsql -d $DB_NAME \
-          --create \
-          --slim \
-          -S "$STYLE_FILE" \
-          "${CITY}.osm"
+osm2pgsql \
+    -U $DB_USER \
+    -d $DB_NAME \
+    --create \
+    --slim \
+    -S "$STYLE_FILE" \
+    "${CITY}.osm"
+echo "Osm2pgsql configured."
 
+# execute sql
+echo "Executing sql."
 psql -U $DB_USER -d $DB_NAME << EOF
 -- Create landmarks table
 CREATE TABLE landmarks (
@@ -77,5 +101,6 @@ UPDATE ways
 SET safety_index = COALESCE(tag_id, 0) * 10
 WHERE safety_index IS NULL;
 EOF
+echo "Sql executed."
 
 echo "Database setup complete!"

@@ -2,5 +2,7 @@
 *.pbf
 *.geojson
 
+db_volume/
+
 .DS_STORE
 .idea
