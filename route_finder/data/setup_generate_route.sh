@@ -12,12 +12,14 @@ CREATE OR REPLACE FUNCTION generate_route(
     weight_slope_index DOUBLE PRECISION,
     weight_road_safety DOUBLE PRECISION,
     weight_isolation DOUBLE PRECISION,
+    weight_landmarks DOUBLE PRECISION,
+    landmark_types TEXT[],
     start_lat DOUBLE PRECISION,
     start_lon DOUBLE PRECISION,
     end_lat DOUBLE PRECISION,
     end_lon DOUBLE PRECISION,
     output_file TEXT
-) RETURNS VOID AS \$$
+) RETURNS VOID AS \$\$
 DECLARE
     source_node INTEGER;
     target_node INTEGER;
@@ -34,26 +36,59 @@ BEGIN
   ORDER BY ST_Distance(the_geom, ST_SetSRID(ST_MakePoint(end_lon, end_lat), 4326)) ASC
   LIMIT 1;
 
-  -- Create the dynamic view
-  EXECUTE '
+  -- Create a temporary table for landmark-based costs
+  DROP TABLE IF EXISTS temp_ways_cost;
+  CREATE TEMP TABLE temp_ways_cost (
+      way_id INTEGER PRIMARY KEY,
+      cost DOUBLE PRECISION
+  );
+
+  INSERT INTO temp_ways_cost (way_id, cost)
+  WITH landmark_counts AS (
+      SELECT
+          w.gid AS way_id,
+          COUNT(l.id) AS landmark_count
+      FROM
+          ways w
+      LEFT JOIN
+          landmarks l
+      ON
+          l.type = ANY(landmark_types) AND
+          ST_DWithin(ST_Transform(w.the_geom, 3857), ST_Transform(l.geom, 3857), 100)
+      GROUP BY
+          w.gid
+  )
+  SELECT
+      way_id,
+      CASE
+          WHEN landmark_count > 0 THEN 1.0 / landmark_count
+          ELSE 1e6
+      END AS cost
+  FROM
+      landmark_counts;
+
+  -- Create the dynamic view with weight parameters
+  EXECUTE format('
   CREATE OR REPLACE VIEW dynamic_route AS
   WITH adjusted_values AS (
     SELECT
-      gid,
-      the_geom,
-      source,
-      target,
-      length,
-      green_index,
-      water_index,
-      shade_index,
-      slope_index,
-      safety_index,
-      isolation_index,
+      w.gid,
+      w.the_geom,
+      w.source,
+      w.target,
+      w.length,
+      w.green_index,
+      w.water_index,
+      w.shade_index,
+      w.slope_index,
+      w.safety_index,
+      w.isolation_index,
+      COALESCE(tc.cost, 1e6) AS landmark_cost,
       -- Adjust green_index and water_index
-      (green_index + 0.01) AS adjusted_green_index,
-      (water_index + 0.01) AS adjusted_water_index
-    FROM ways
+      (w.green_index + 0.01) AS adjusted_green_index,
+      (w.water_index + 0.01) AS adjusted_water_index
+    FROM ways w
+    LEFT JOIN temp_ways_cost tc ON w.gid = tc.way_id
   ),
   raw_inverse_values AS (
     SELECT
@@ -68,6 +103,7 @@ BEGIN
       slope_index,
       safety_index,
       isolation_index,
+      landmark_cost,
       -- Compute raw inverse values for green, water, and isolation
       MAX(adjusted_green_index) OVER() - adjusted_green_index AS raw_inverse_green_index,
       MAX(adjusted_water_index) OVER() - adjusted_water_index AS raw_inverse_water_index,
@@ -87,6 +123,7 @@ BEGIN
       slope_index,
       safety_index,
       raw_inverse_isolation,
+      landmark_cost,
       -- Normalize length
       (length - MIN(length) OVER()) / NULLIF((MAX(length) OVER() - MIN(length) OVER()), 0) AS norm_length,
       -- Normalize green_index
@@ -99,11 +136,13 @@ BEGIN
       (shade_index - MIN(shade_index) OVER()) / NULLIF((MAX(shade_index) OVER() - MIN(shade_index) OVER()), 0) AS norm_shade_index,
       -- Normalize slope_index
       (slope_index - MIN(slope_index) OVER()) / NULLIF((MAX(slope_index) OVER() - MIN(slope_index) OVER()), 0) AS norm_slope_index,
-      -- Normalize safety_index (directly used)
+      -- Normalize safety_index
       (safety_index - MIN(safety_index) OVER()) / NULLIF((MAX(safety_index) OVER() - MIN(safety_index) OVER()), 0) AS norm_safety_index,
-      -- Normalize isolation_index (from raw_inverse_isolation)
+      -- Normalize isolation_index
       (raw_inverse_isolation - MIN(raw_inverse_isolation) OVER()) /
-      NULLIF((MAX(raw_inverse_isolation) OVER() - MIN(raw_inverse_isolation) OVER()), 0) AS inverse_isolation_index
+      NULLIF((MAX(raw_inverse_isolation) OVER() - MIN(raw_inverse_isolation) OVER()), 0) AS inverse_isolation_index,
+      -- Normalize landmark cost
+      (landmark_cost - MIN(landmark_cost) OVER()) / NULLIF((MAX(landmark_cost) OVER() - MIN(landmark_cost) OVER()), 0) AS norm_landmark_cost
     FROM raw_inverse_values
   ),
   composite_cost_table AS (
@@ -119,13 +158,15 @@ BEGIN
       norm_slope_index,
       norm_safety_index,
       inverse_isolation_index,
-      (' || weight_length || ' * norm_length) +
-      (' || weight_green_index || ' * inverse_green_index) +
-      (' || weight_water_index || ' * inverse_water_index) +
-      (' || weight_shade_index || ' * norm_shade_index) +
-      (' || weight_slope_index || ' * norm_slope_index) +
-      (' || weight_road_safety || ' * norm_safety_index) +
-      (' || weight_isolation || ' * inverse_isolation_index)
+      norm_landmark_cost,
+      (%s * norm_length) +
+      (%s * inverse_green_index) +
+      (%s * inverse_water_index) +
+      (%s * norm_shade_index) +
+      (%s * norm_slope_index) +
+      (%s * norm_safety_index) +
+      (%s * inverse_isolation_index) +
+      (%s * norm_landmark_cost)
     AS composite_cost
     FROM norm_tables
   )
@@ -136,11 +177,12 @@ BEGIN
     target,
     composite_cost
   FROM composite_cost_table
-  WHERE composite_cost IS NOT NULL;
-  ';
+  WHERE composite_cost IS NOT NULL;',
+  weight_length::TEXT, weight_green_index::TEXT, weight_water_index::TEXT, weight_shade_index::TEXT,
+  weight_slope_index::TEXT, weight_road_safety::TEXT, weight_isolation::TEXT, weight_landmarks::TEXT);
 
   -- Generate the route and store in a temporary table
-  EXECUTE '
+  EXECUTE format('
   CREATE TEMP TABLE temp_route AS
   WITH route AS (
     SELECT
@@ -150,28 +192,22 @@ BEGIN
       path.cost,
       w.the_geom AS geom
     FROM pgr_dijkstra(
-      ''
-        SELECT gid AS id,
-               source,
-               target,
-               composite_cost AS cost
-        FROM dynamic_route
-      '',
-      ' || source_node || ',
-      ' || target_node || ',
+      %L,
+      %s,
+      %s,
       directed := false
     ) AS path
     JOIN dynamic_route w ON path.edge = w.gid
   )
   SELECT ST_AsGeoJSON(ST_Collect(geom)) AS route_geojson
-  FROM route;
-  ';
+  FROM route;',
+  'SELECT gid AS id, source, target, composite_cost AS cost FROM dynamic_route',
+  source_node::TEXT, target_node::TEXT);
 
   -- Output to file
-  EXECUTE 'COPY (SELECT route_geojson FROM temp_route) TO ''' || output_file || '''';
+  EXECUTE 'COPY (SELECT route_geojson FROM temp_route) TO ' || quote_literal(output_file);
 END;
-\$$ LANGUAGE plpgsql;
+\$\$ LANGUAGE plpgsql;
 "
 
-psql -U "$DB_USER" -d "$DB_NAME" -c "$SQL"
-echo "Function generate_route has been added to the database $DB_NAME."
+psql -U $DB_USER -d $DB_NAME -c "$SQL"
