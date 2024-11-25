@@ -10,11 +10,28 @@ CREATE OR REPLACE FUNCTION generate_route(
     weight_water_index DOUBLE PRECISION,
     weight_shade_index DOUBLE PRECISION,
     weight_slope_index DOUBLE PRECISION,
-    source_node INTEGER,
-    target_node INTEGER,
+    start_lat DOUBLE PRECISION,
+    start_lon DOUBLE PRECISION,
+    end_lat DOUBLE PRECISION,
+    end_lon DOUBLE PRECISION,
     output_file TEXT
 ) RETURNS VOID AS \$$
+DECLARE
+    source_node INTEGER;
+    target_node INTEGER;
 BEGIN
+  -- Find the closest source node
+  SELECT id INTO source_node
+  FROM ways_vertices_pgr
+  ORDER BY ST_Distance(the_geom, ST_SetSRID(ST_MakePoint(start_lon, start_lat), 4326)) ASC
+  LIMIT 1;
+
+  -- Find the closest target node
+  SELECT id INTO target_node
+  FROM ways_vertices_pgr
+  ORDER BY ST_Distance(the_geom, ST_SetSRID(ST_MakePoint(end_lon, end_lat), 4326)) ASC
+  LIMIT 1;
+
   -- Create the dynamic view
   EXECUTE '
   CREATE OR REPLACE VIEW dynamic_route AS
