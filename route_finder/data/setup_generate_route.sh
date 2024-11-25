@@ -128,24 +128,52 @@ BEGIN
       raw_inverse_isolation,
       landmark_cost,
       -- Normalize length
-      (length - MIN(length) OVER()) / NULLIF((MAX(length) OVER() - MIN(length) OVER()), 0) AS norm_length,
+      COALESCE(
+        (length - MIN(length) OVER()) / NULLIF((MAX(length) OVER() - MIN(length) OVER()), 0),
+        0
+      ) AS norm_length,
       -- Normalize green_index
-      (raw_inverse_green_index - MIN(raw_inverse_green_index) OVER()) /
-      NULLIF((MAX(raw_inverse_green_index) OVER() - MIN(raw_inverse_green_index) OVER()), 0) AS inverse_green_index,
+      COALESCE(
+        (raw_inverse_green_index - MIN(raw_inverse_green_index) OVER()) /
+        NULLIF((MAX(raw_inverse_green_index) OVER() - MIN(raw_inverse_green_index) OVER()), 0),
+        0
+      ) AS inverse_green_index,
       -- Normalize water_index
-      (raw_inverse_water_index - MIN(raw_inverse_water_index) OVER()) /
-      NULLIF((MAX(raw_inverse_water_index) OVER() - MIN(raw_inverse_water_index) OVER()), 0) AS inverse_water_index,
+      COALESCE(
+        (raw_inverse_water_index - MIN(raw_inverse_water_index) OVER()) /
+        NULLIF((MAX(raw_inverse_water_index) OVER() - MIN(raw_inverse_water_index) OVER()), 0),
+        0
+      ) AS inverse_water_index,
       -- Normalize shade_index
-      (shade_index - MIN(shade_index) OVER()) / NULLIF((MAX(shade_index) OVER() - MIN(shade_index) OVER()), 0) AS norm_shade_index,
+      COALESCE(
+        (shade_index - MIN(shade_index) OVER()) /
+        NULLIF((MAX(shade_index) OVER() - MIN(shade_index) OVER()), 0),
+        0
+      ) AS norm_shade_index,
       -- Normalize slope_index
-      (slope_index - MIN(slope_index) OVER()) / NULLIF((MAX(slope_index) OVER() - MIN(slope_index) OVER()), 0) AS norm_slope_index,
+      COALESCE(
+        (slope_index - MIN(slope_index) OVER()) /
+        NULLIF((MAX(slope_index) OVER() - MIN(slope_index) OVER()), 0),
+        0
+      ) AS norm_slope_index,
       -- Normalize safety_index
-      (safety_index - MIN(safety_index) OVER()) / NULLIF((MAX(safety_index) OVER() - MIN(safety_index) OVER()), 0) AS norm_safety_index,
+      COALESCE(
+        (safety_index - MIN(safety_index) OVER()) /
+        NULLIF((MAX(safety_index) OVER() - MIN(safety_index) OVER()), 0),
+        0
+      ) AS norm_safety_index,
       -- Normalize isolation_index
-      (raw_inverse_isolation - MIN(raw_inverse_isolation) OVER()) /
-      NULLIF((MAX(raw_inverse_isolation) OVER() - MIN(raw_inverse_isolation) OVER()), 0) AS inverse_isolation_index,
+      COALESCE(
+        (raw_inverse_isolation - MIN(raw_inverse_isolation) OVER()) /
+        NULLIF((MAX(raw_inverse_isolation) OVER() - MIN(raw_inverse_isolation) OVER()), 0),
+        0
+      ) AS inverse_isolation_index,
       -- Normalize landmark cost
-      (landmark_cost - MIN(landmark_cost) OVER()) / NULLIF((MAX(landmark_cost) OVER() - MIN(landmark_cost) OVER()), 0) AS norm_landmark_cost
+      COALESCE(
+        (landmark_cost - MIN(landmark_cost) OVER()) /
+        NULLIF((MAX(landmark_cost) OVER() - MIN(landmark_cost) OVER()), 0),
+        0
+      ) AS norm_landmark_cost
     FROM raw_inverse_values
   ),
   composite_cost_table AS (
@@ -206,51 +234,57 @@ BEGIN
   'SELECT gid AS id, source, target, composite_cost AS cost FROM dynamic_route',
   source_node::TEXT, target_node::TEXT);
 
-  -- Collect the route geometry
-  SELECT ST_Collect(geom) INTO route_geom FROM temp_route;
+  -- Check if temp_route has data
+  IF EXISTS (SELECT 1 FROM temp_route) THEN
+    -- Collect the route geometry
+    SELECT ST_Collect(geom) INTO route_geom FROM temp_route;
 
-  -- Create a temporary table to hold the route geometry
-  CREATE TEMP TABLE temp_route_geom (route_geom geometry);
-  INSERT INTO temp_route_geom (route_geom) VALUES (route_geom);
+    -- Create a temporary table to hold the route geometry
+    CREATE TEMP TABLE temp_route_geom (route_geom geometry);
+    INSERT INTO temp_route_geom (route_geom) VALUES (route_geom);
 
-  -- Output the route to file
-  EXECUTE 'COPY (
-    SELECT
-      json_build_object(
-        ''type'', ''Feature'',
-        ''geometry'', ST_AsGeoJSON(route_geom)::json,
-        ''properties'', json_build_object()
-      )
-    FROM temp_route_geom
-  ) TO ' || quote_literal(output_file);
-
-  -- Create a buffer around the route (e.g., 100 meters)
-  SELECT ST_Buffer(ST_Transform(route_geom, 3857), 100) INTO route_buffer;
-
-  -- Select landmarks within the buffer
-  CREATE TEMP TABLE temp_landmarks AS
-  SELECT l.*
-  FROM landmarks l
-  WHERE l.type = ANY(landmark_types)
-  AND ST_Intersects(
-      ST_Transform(l.geom, 3857),
-      route_buffer
-  );
-
-  -- Output landmarks to file
-  EXECUTE 'COPY (
-    SELECT json_build_object(
-        ''type'', ''FeatureCollection'',
-        ''features'', json_agg(
-            json_build_object(
-                ''type'', ''Feature'',
-                ''geometry'', ST_AsGeoJSON(l.geom)::json,
-                ''properties'', to_jsonb(l) - ''geom''
-            )
+    -- Output the route to file
+    EXECUTE 'COPY (
+      SELECT
+        json_build_object(
+          ''type'', ''Feature'',
+          ''geometry'', ST_AsGeoJSON(route_geom)::json,
+          ''properties'', json_build_object()
         )
-    )
-    FROM temp_landmarks l
-  ) TO ' || quote_literal(landmarks_output_file);
+      FROM temp_route_geom
+    ) TO ' || quote_literal(output_file);
+
+    -- Create a buffer around the route (e.g., 100 meters)
+    SELECT ST_Buffer(ST_Transform(route_geom, 3857), 100) INTO route_buffer;
+
+    -- Select landmarks within the buffer
+    CREATE TEMP TABLE temp_landmarks AS
+    SELECT l.*
+    FROM landmarks l
+    WHERE l.type = ANY(landmark_types)
+    AND ST_Intersects(
+        ST_Transform(l.geom, 3857),
+        route_buffer
+    );
+
+    -- Output landmarks to file
+    EXECUTE 'COPY (
+      SELECT json_build_object(
+          ''type'', ''FeatureCollection'',
+          ''features'', json_agg(
+              json_build_object(
+                  ''type'', ''Feature'',
+                  ''geometry'', ST_AsGeoJSON(l.geom)::json,
+                  ''properties'', to_jsonb(l) - ''geom''
+              )
+          )
+      )
+      FROM temp_landmarks l
+    ) TO ' || quote_literal(landmarks_output_file);
+
+  ELSE
+    RAISE NOTICE 'No route found between the specified points.';
+  END IF;
 
 END;
 \$\$ LANGUAGE plpgsql;
