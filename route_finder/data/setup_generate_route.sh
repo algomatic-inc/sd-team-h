@@ -10,6 +10,8 @@ CREATE OR REPLACE FUNCTION generate_route(
     weight_water_index DOUBLE PRECISION,
     weight_shade_index DOUBLE PRECISION,
     weight_slope_index DOUBLE PRECISION,
+    weight_road_safety DOUBLE PRECISION,
+    weight_isolation DOUBLE PRECISION,
     start_lat DOUBLE PRECISION,
     start_lon DOUBLE PRECISION,
     end_lat DOUBLE PRECISION,
@@ -46,6 +48,8 @@ BEGIN
       water_index,
       shade_index,
       slope_index,
+      safety_index,
+      isolation_index,
       -- Adjust green_index and water_index
       (green_index + 0.01) AS adjusted_green_index,
       (water_index + 0.01) AS adjusted_water_index
@@ -62,9 +66,12 @@ BEGIN
       adjusted_water_index,
       shade_index,
       slope_index,
-      -- Compute raw inverse values
+      safety_index,
+      isolation_index,
+      -- Compute raw inverse values for green, water, and isolation
       MAX(adjusted_green_index) OVER() - adjusted_green_index AS raw_inverse_green_index,
-      MAX(adjusted_water_index) OVER() - adjusted_water_index AS raw_inverse_water_index
+      MAX(adjusted_water_index) OVER() - adjusted_water_index AS raw_inverse_water_index,
+      MAX(isolation_index) OVER() - isolation_index AS raw_inverse_isolation
     FROM adjusted_values
   ),
   norm_tables AS (
@@ -78,6 +85,8 @@ BEGIN
       raw_inverse_water_index,
       shade_index,
       slope_index,
+      safety_index,
+      raw_inverse_isolation,
       -- Normalize length
       (length - MIN(length) OVER()) / NULLIF((MAX(length) OVER() - MIN(length) OVER()), 0) AS norm_length,
       -- Normalize green_index
@@ -89,7 +98,12 @@ BEGIN
       -- Normalize shade_index
       (shade_index - MIN(shade_index) OVER()) / NULLIF((MAX(shade_index) OVER() - MIN(shade_index) OVER()), 0) AS norm_shade_index,
       -- Normalize slope_index
-      (slope_index - MIN(slope_index) OVER()) / NULLIF((MAX(slope_index) OVER() - MIN(slope_index) OVER()), 0) AS norm_slope_index
+      (slope_index - MIN(slope_index) OVER()) / NULLIF((MAX(slope_index) OVER() - MIN(slope_index) OVER()), 0) AS norm_slope_index,
+      -- Normalize safety_index (directly used)
+      (safety_index - MIN(safety_index) OVER()) / NULLIF((MAX(safety_index) OVER() - MIN(safety_index) OVER()), 0) AS norm_safety_index,
+      -- Normalize isolation_index (from raw_inverse_isolation)
+      (raw_inverse_isolation - MIN(raw_inverse_isolation) OVER()) /
+      NULLIF((MAX(raw_inverse_isolation) OVER() - MIN(raw_inverse_isolation) OVER()), 0) AS inverse_isolation_index
     FROM raw_inverse_values
   ),
   composite_cost_table AS (
@@ -103,11 +117,15 @@ BEGIN
       inverse_water_index,
       norm_shade_index,
       norm_slope_index,
+      norm_safety_index,
+      inverse_isolation_index,
       (' || weight_length || ' * norm_length) +
       (' || weight_green_index || ' * inverse_green_index) +
       (' || weight_water_index || ' * inverse_water_index) +
       (' || weight_shade_index || ' * norm_shade_index) +
-      (' || weight_slope_index || ' * norm_slope_index)
+      (' || weight_slope_index || ' * norm_slope_index) +
+      (' || weight_road_safety || ' * norm_safety_index) +
+      (' || weight_isolation || ' * inverse_isolation_index)
     AS composite_cost
     FROM norm_tables
   )
