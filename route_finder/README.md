@@ -42,10 +42,12 @@ Overall deployment flow is as follows:
 - Export poetry dependencies to a `requirements.txt` file, and copy it to a build directory.
 - Build the Docker image.
 
+Before running the command below, you have to set the environment variable `GOOGLE_API_KEY` to your Google API key for genai api.. To create a Google API key, please refer to [this link](https://github.com/google-gemini/generative-ai-python?tab=readme-ov-file).
+
 You can do all these steps by running the following command:
 ```bash
 $ cd deploy
-$ ./deploy.sh
+$ GOOGLE_API_KEY=<Your API Key> ./deploy.sh
 ```
 
 To run the Docker image locally, run the following command:
@@ -68,5 +70,5 @@ Overall deployment flow is as follows:
 
 You can do all these steps by running the following command:
 ```bash
-$ ./deploy.sh -g -r
+$ GOOGLE_API_KEY=<Your API Key> ./deploy.sh -g -r
 ```

@@ -1,11 +1,4 @@
-import {
-  AdvancedMarker,
-  APIProvider,
-  Map,
-  Pin,
-  useMap,
-} from "@vis.gl/react-google-maps";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import {
   Carousel,
   CarouselContent,
@@ -77,7 +70,7 @@ function Result(): JSX.Element {
   const searchResponse = parseResponse(state) ?? buildDefaultResponse();
   console.log(searchResponse);
 
-  const [selectedRoute, setSelectedRoute] = useState(
+  const [selectedRoute] = useState(
     searchResponse.routes.length > 0 ? searchResponse.routes[0] : null
   );
 
