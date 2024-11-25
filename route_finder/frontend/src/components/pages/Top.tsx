@@ -62,7 +62,7 @@ function Top() {
     <div>
       <LoadingSpinner loading={loading} />
       <div className="flex justify-center">
-        <h1>Welcome to Route Planner</h1>
+        <h1>Welcome to sanpo.ai</h1>
       </div>
       <div className="flex justify-center pt-2">
         <p>Plan your walking route and explore your surroundings.</p>

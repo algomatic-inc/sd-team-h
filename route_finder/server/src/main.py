@@ -1,12 +1,8 @@
 # Description: Main entry point for the server.
 import dataclasses
-<<<<<<< HEAD
 import time
-=======
 import json
-
 from typing import Any
->>>>>>> main
 
 from flask import Flask, send_from_directory, request, jsonify
 from request_response_data import SearchRequest, Location, SearchResponse
