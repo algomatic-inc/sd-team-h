@@ -8,6 +8,8 @@ CREATE OR REPLACE FUNCTION generate_route(
     weight_length DOUBLE PRECISION,
     weight_green_index DOUBLE PRECISION,
     weight_water_index DOUBLE PRECISION,
+    weight_shade_index DOUBLE PRECISION,
+    weight_slope_index DOUBLE PRECISION,
     source_node INTEGER,
     target_node INTEGER,
     output_file TEXT
@@ -16,7 +18,7 @@ BEGIN
   -- Create the dynamic view
   EXECUTE '
   CREATE OR REPLACE VIEW dynamic_route AS
-  WITH norm_tables AS (
+  WITH adjusted_values AS (
     SELECT
       gid,
       the_geom,
@@ -25,13 +27,53 @@ BEGIN
       length,
       green_index,
       water_index,
-      -- Normalize length
-      (length - MIN(length) OVER()) / (MAX(length) OVER() - MIN(length) OVER()) AS norm_length,
-      -- Normalize green_index (reversed)
-      1 - ((green_index - MIN(green_index) OVER()) / (MAX(green_index) OVER() - MIN(green_index) OVER())) AS inverse_green_index,
-      -- Normalize and reverse water_index
-      1 - ((water_index - MIN(water_index) OVER()) / (MAX(water_index) OVER() - MIN(water_index) OVER())) AS inverse_water_index
+      shade_index,
+      slope_index,
+      -- Adjust green_index and water_index
+      (green_index + 0.01) AS adjusted_green_index,
+      (water_index + 0.01) AS adjusted_water_index
     FROM ways
+  ),
+  raw_inverse_values AS (
+    SELECT
+      gid,
+      the_geom,
+      source,
+      target,
+      length,
+      adjusted_green_index,
+      adjusted_water_index,
+      shade_index,
+      slope_index,
+      -- Compute raw inverse values
+      MAX(adjusted_green_index) OVER() - adjusted_green_index AS raw_inverse_green_index,
+      MAX(adjusted_water_index) OVER() - adjusted_water_index AS raw_inverse_water_index
+    FROM adjusted_values
+  ),
+  norm_tables AS (
+    SELECT
+      gid,
+      the_geom,
+      source,
+      target,
+      length,
+      raw_inverse_green_index,
+      raw_inverse_water_index,
+      shade_index,
+      slope_index,
+      -- Normalize length
+      (length - MIN(length) OVER()) / NULLIF((MAX(length) OVER() - MIN(length) OVER()), 0) AS norm_length,
+      -- Normalize green_index
+      (raw_inverse_green_index - MIN(raw_inverse_green_index) OVER()) /
+      NULLIF((MAX(raw_inverse_green_index) OVER() - MIN(raw_inverse_green_index) OVER()), 0) AS inverse_green_index,
+      -- Normalize water_index
+      (raw_inverse_water_index - MIN(raw_inverse_water_index) OVER()) /
+      NULLIF((MAX(raw_inverse_water_index) OVER() - MIN(raw_inverse_water_index) OVER()), 0) AS inverse_water_index,
+      -- Normalize shade_index
+      (shade_index - MIN(shade_index) OVER()) / NULLIF((MAX(shade_index) OVER() - MIN(shade_index) OVER()), 0) AS norm_shade_index,
+      -- Normalize slope_index
+      (slope_index - MIN(slope_index) OVER()) / NULLIF((MAX(slope_index) OVER() - MIN(slope_index) OVER()), 0) AS norm_slope_index
+    FROM raw_inverse_values
   ),
   composite_cost_table AS (
     SELECT
@@ -42,9 +84,13 @@ BEGIN
       norm_length,
       inverse_green_index,
       inverse_water_index,
+      norm_shade_index,
+      norm_slope_index,
       (' || weight_length || ' * norm_length) +
       (' || weight_green_index || ' * inverse_green_index) +
-      (' || weight_water_index || ' * inverse_water_index)
+      (' || weight_water_index || ' * inverse_water_index) +
+      (' || weight_shade_index || ' * norm_shade_index) +
+      (' || weight_slope_index || ' * norm_slope_index)
     AS composite_cost
     FROM norm_tables
   )
