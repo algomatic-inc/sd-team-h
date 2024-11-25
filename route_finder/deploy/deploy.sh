@@ -23,6 +23,13 @@ do
   esac
 done
 
+api_key="${GOOGLE_API_KEY}"
+
+if [[ -z "${api_key}" ]]; then
+  echo "No GOOGLE_API_KEY specified."
+  exit 1
+fi
+
 # Clean up existing build dir.
 if [[ -d "${BUILD_DIR}" ]]; then
   rm -r "${BUILD_DIR}"
@@ -44,7 +51,7 @@ cp -r ${BEDIR}/src/* "${BUILD_DIR}"
 
 # Build an image
 cd "${DEPDIR}"
-docker buildx build --platform=linux/amd64 -t "${LOCAL_DOCKER_IMG}" .
+docker buildx build --build-arg GOOGLE_API_KEY="${api_key}" --platform=linux/amd64 -t "${LOCAL_DOCKER_IMG}" .
 
 # Push
 if [[ "${push_to_gcp}" = "true" ]]; then
