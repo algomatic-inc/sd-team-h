@@ -18,11 +18,14 @@ CREATE OR REPLACE FUNCTION generate_route(
     start_lon DOUBLE PRECISION,
     end_lat DOUBLE PRECISION,
     end_lon DOUBLE PRECISION,
-    output_file TEXT
+    output_file TEXT,
+    landmarks_output_file TEXT
 ) RETURNS VOID AS \$\$
 DECLARE
     source_node INTEGER;
     target_node INTEGER;
+    route_geom GEOMETRY;
+    route_buffer GEOMETRY;
 BEGIN
   -- Find the closest source node
   SELECT id INTO source_node
@@ -187,8 +190,8 @@ BEGIN
   WITH route AS (
     SELECT
       seq,
-      path.node AS source,
-      path.edge AS target,
+      path.node AS node,
+      path.edge AS edge,
       path.cost,
       w.the_geom AS geom
     FROM pgr_dijkstra(
@@ -199,15 +202,59 @@ BEGIN
     ) AS path
     JOIN dynamic_route w ON path.edge = w.gid
   )
-  SELECT ST_AsGeoJSON(ST_Collect(geom)) AS route_geojson
-  FROM route;',
+  SELECT geom FROM route;',
   'SELECT gid AS id, source, target, composite_cost AS cost FROM dynamic_route',
   source_node::TEXT, target_node::TEXT);
 
-  -- Output to file
-  EXECUTE 'COPY (SELECT route_geojson FROM temp_route) TO ' || quote_literal(output_file);
+  -- Collect the route geometry
+  SELECT ST_Collect(geom) INTO route_geom FROM temp_route;
+
+  -- Create a temporary table to hold the route geometry
+  CREATE TEMP TABLE temp_route_geom (route_geom geometry);
+  INSERT INTO temp_route_geom (route_geom) VALUES (route_geom);
+
+  -- Output the route to file
+  EXECUTE 'COPY (
+    SELECT
+      json_build_object(
+        ''type'', ''Feature'',
+        ''geometry'', ST_AsGeoJSON(route_geom)::json,
+        ''properties'', json_build_object()
+      )
+    FROM temp_route_geom
+  ) TO ' || quote_literal(output_file);
+
+  -- Create a buffer around the route (e.g., 100 meters)
+  SELECT ST_Buffer(ST_Transform(route_geom, 3857), 100) INTO route_buffer;
+
+  -- Select landmarks within the buffer
+  CREATE TEMP TABLE temp_landmarks AS
+  SELECT l.*
+  FROM landmarks l
+  WHERE l.type = ANY(landmark_types)
+  AND ST_Intersects(
+      ST_Transform(l.geom, 3857),
+      route_buffer
+  );
+
+  -- Output landmarks to file
+  EXECUTE 'COPY (
+    SELECT json_build_object(
+        ''type'', ''FeatureCollection'',
+        ''features'', json_agg(
+            json_build_object(
+                ''type'', ''Feature'',
+                ''geometry'', ST_AsGeoJSON(l.geom)::json,
+                ''properties'', to_jsonb(l) - ''geom''
+            )
+        )
+    )
+    FROM temp_landmarks l
+  ) TO ' || quote_literal(landmarks_output_file);
+
 END;
 \$\$ LANGUAGE plpgsql;
 "
 
+# Execute the SQL to create the function
 psql -U $DB_USER -d $DB_NAME -c "$SQL"
