@@ -17,10 +17,11 @@ CREATE OR REPLACE FUNCTION generate_route(
     start_lat DOUBLE PRECISION,
     start_lon DOUBLE PRECISION,
     end_lat DOUBLE PRECISION,
-    end_lon DOUBLE PRECISION,
-    output_file TEXT,
-    landmarks_output_file TEXT
-) RETURNS VOID
+    end_lon DOUBLE PRECISION
+) RETURNS TABLE (
+    route_geojson TEXT,
+    landmarks_geojson TEXT
+)
 ```
 
 ## Parameters
@@ -38,8 +39,10 @@ CREATE OR REPLACE FUNCTION generate_route(
 * **start_lon** (DOUBLE PRECISION): Longitude of the starting point.
 * **end_lat** (DOUBLE PRECISION): Latitude of the ending point.
 * **end_lon** (DOUBLE PRECISION): Longitude of the ending point.
-* **output_file** (TEXT): Path to the output GeoJSON file where the route will be saved.
-* **landmarks_output_file** (TEXT): Path to the output GeoJSON file where the landmarks within the buffer around the route will be saved.
+
+## Return Values
+* route_geojson: A GeoJSON string representing the route.
+* landmarks_geojson: A GeoJSON string containing landmarks within a 100-meter buffer around the route.
 
 ## Notes
 * Weights Range: Each weight should be between 0 and 1 inclusive.
@@ -49,7 +52,6 @@ CREATE OR REPLACE FUNCTION generate_route(
   * A weight closer to 1 increases the influence of that factor in the routing decision.
   * Landmark Types: The landmark_types array should contain the types of landmarks you want to consider. The types must be selected from the list provided below.
   * Empty Landmark Types: If you do not wish to consider landmarks, provide an empty array cast to text[], i.e., ARRAY[]::text[].
-  * Output Files: Ensure that the PostgreSQL server process has write permissions to the directories where the output files will be saved.
 
 ## Possible Landmark Types
 
@@ -260,8 +262,6 @@ SELECT generate_route(
   139.726770,             -- start longitude
   35.811339,              -- end latitude
   139.653754,             -- end longitude
-  '/path/to/route_output.geojson',          -- route output file
-  '/path/to/landmarks_output.geojson'       -- landmarks output file
 );
 ```
 
@@ -282,8 +282,6 @@ SELECT generate_route(
   139.726770,             -- start longitude
   35.811339,              -- end latitude
   139.653754,             -- end longitude
-  '/path/to/route_output.geojson',          -- route output file
-  '/path/to/landmarks_output.geojson'       -- landmarks output file (will be empty)
 );
 ```
 
@@ -296,5 +294,3 @@ In this example, landmarks are not considered in the routing decision.
 * **Data Requirements**: The function assumes that your database contains the necessary tables and data, such as ways, ways_vertices_pgr, and landmarks, with appropriate spatial columns and indexes.
 * **Permissions**: Ensure that the PostgreSQL server has write permissions to the directories specified in output_file and landmarks_output_file.
 * **Error Handling**: The function does not include extensive error handling. Ensure that the inputs are valid and that the data required for routing is present in the database.
-
-Please make sure to replace /path/to/route_output.geojson and /path/to/landmarks_output.geojson with the actual paths where you want the output files to be saved, and that these paths are accessible and writable by the PostgreSQL server.
