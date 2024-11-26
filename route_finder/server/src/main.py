@@ -1,23 +1,39 @@
 # Description: Main entry point for the server.
 import dataclasses
-import time
-import json
+import logging
+import os
 from typing import Any
 
 from flask import Flask, send_from_directory, request, jsonify
-from request_response_data import SearchRequest, Location, SearchResponse
-from mock_response import build_mock_response
 from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
 
+from mock_response import build_mock_response
+from request_response_data import SearchRequest, Location, SearchResponse
 from server.add_explanation import add_explanation
+from server.get_routes import get_routes
 
 
 app = Flask(__name__, static_folder="dist", static_url_path="")
 
+logger: logging.Logger = logging.getLogger(__name__)
+
 if app.debug:
     # Allow CORS from the React app running in development mode.
     CORS(app)
+    logger.error("debug mode")
 
+# configure connection to the database
+db_url = (
+    f'postgresql://'
+    f'{os.getenv("DB_USER")}:'
+    f'{os.getenv("DB_PASSWORD")}@'
+    f'{os.getenv("DB_HOST")}:'
+    f'{os.getenv("DB_PORT")}/'
+    f'{os.getenv("DB_NAME")}'
+)
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+db = SQLAlchemy(app)
 
 _HTTP_400_BAD_REQUEST = 400
 
@@ -31,12 +47,14 @@ def server():
 @app.route("/search")
 def search():
     """Search API endpoint."""
+    logger.error("process started.")
+
     query: str | None = request.args.get("q")
     start_location: str | None = request.args.get("s")
     end_location: str | None = request.args.get("e")
     # Delay seconds for emulating server delay.
     delay: str | None = request.args.get("delay")
-    app.logger.info(f"Query: {query}, Start: {start_location}, End: {end_location}")
+    logger.error(f"request: {query=}, {start_location=}, {end_location=}")
 
     # Validate the request.
     if not query or not start_location or not end_location:
@@ -57,26 +75,40 @@ def search():
     if req is None:
         return jsonify({"error": "Invalid request."}), _HTTP_400_BAD_REQUEST
 
-    if app.debug and delay:
-        app.logger.info(f"Delaying response by {delay} seconds.")
-        time.sleep(int(delay))
+    # calculate weights of variables
+    # TODO: implement
 
-    # get routes
-    # TODO: call the sefa's function.
-    data_geojson: Any = None
+    # get info of routes and landmarks
+    routes_info: Any = None
+    landmarks_info: Any = None
 
-    # parse data to string
-    data_geojson_str: str = json.dumps(data_geojson)
+    # TODO: replace with actual weights
+    routes_info, landmarks_info = get_routes(
+        db,
+        0.333,  # weight_length
+        0.333,  # weight_green_index
+        0.333,  # weight_water_index
+        0.0,    # weight_shade_index
+        0.0,    # weight_slope_index
+        0.0,    # weight_road_safety
+        0.0,    # weight_isolation
+        0.0,    # weight_landmarks
+        [],
+        35.783596266118984,  # start_lat
+        139.71752376708983,  # start_lon
+        35.777607986362796,  # end_lat
+        139.72078533325194,  # end_lon
+    )
 
     # add explanation
-    res = add_explanation(query, data_geojson_str)
-
-    # Checking for response. Please clean up.
-    print(res)
+    res = add_explanation(query, routes_info)
 
     # Return the mock response for now.
     # TODO: Implement the actual search logic.
     resp: SearchResponse = build_mock_response(req)
+    logger.error(f"response: {resp=}")
+
+    logger.error("process completed.")
     return jsonify(dataclasses.asdict(resp))
 
 

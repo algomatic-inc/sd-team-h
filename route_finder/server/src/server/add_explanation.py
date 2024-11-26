@@ -25,10 +25,14 @@ def add_explanation(additional_info: str, data_geojson_str: str) -> str:
         ・エリアのタイトル
         ・そのエリア全体の特徴
         ・そのエリアの見どころ
+        ###
+        {data_geojson_str}
         """
     )
 
-    response = model.generate_content(prompt + data_geojson_str)
+    response = model.generate_content(prompt)
+
+    print(f"{response.text=}")
     return response.text
 
 if __name__ == "__main__":
