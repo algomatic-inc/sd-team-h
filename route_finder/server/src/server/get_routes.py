@@ -1,4 +1,3 @@
-import json
 from sqlalchemy import text
 
 
@@ -17,7 +16,7 @@ def get_routes(
     start_lon: float,
     end_lat: float,
     end_lon: float,
-) -> tuple[str, str]:
+) -> tuple[str, str | None]:
     sql = text(
         """
         SELECT * FROM generate_route(
@@ -57,10 +56,7 @@ def get_routes(
         },
     )
 
-    route_geojson = response.fetchone()[0]
-    landmarks_geojson = response.fetchone()[1] if response.rowcount > 1 else None
-
-    route_info: str | None = json.loads(route_geojson) if route_geojson else None
-    landmarks_info: str | None = json.loads(landmarks_geojson) if landmarks_geojson else None
+    route_info: str = response.fetchone()[0]
+    landmarks_info: str | None = response.fetchone()[1] if response.rowcount > 1 else None
 
     return route_info, landmarks_info
