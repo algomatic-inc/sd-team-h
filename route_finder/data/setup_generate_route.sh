@@ -17,10 +17,8 @@ CREATE OR REPLACE FUNCTION generate_route(
     start_lat DOUBLE PRECISION,
     start_lon DOUBLE PRECISION,
     end_lat DOUBLE PRECISION,
-    end_lon DOUBLE PRECISION,
-    output_file TEXT,
-    landmarks_output_file TEXT
-) RETURNS VOID AS \$\$
+    end_lon DOUBLE PRECISION
+) RETURNS TABLE(route_geojson TEXT, landmarks_geojson TEXT) AS \$\$
 DECLARE
     source_node INTEGER;
     target_node INTEGER;
@@ -237,25 +235,10 @@ BEGIN
   -- Check if temp_route has data
   IF EXISTS (SELECT 1 FROM temp_route) THEN
     -- Collect the route geometry
-    SELECT ST_Collect(geom) INTO route_geom FROM temp_route;
-
-    -- Create a temporary table to hold the route geometry
-    CREATE TEMP TABLE temp_route_geom (route_geom geometry);
-    INSERT INTO temp_route_geom (route_geom) VALUES (route_geom);
-
-    -- Output the route to file
-    EXECUTE 'COPY (
-      SELECT
-        json_build_object(
-          ''type'', ''Feature'',
-          ''geometry'', ST_AsGeoJSON(route_geom)::json,
-          ''properties'', json_build_object()
-        )
-      FROM temp_route_geom
-    ) TO ' || quote_literal(output_file);
+    SELECT ST_AsGeoJSON(ST_Collect(geom)) INTO route_geojson FROM temp_route;
 
     -- Create a buffer around the route (e.g., 100 meters)
-    SELECT ST_Buffer(ST_Transform(route_geom, 3857), 100) INTO route_buffer;
+    SELECT ST_Buffer(ST_Transform(ST_Collect(geom), 3857), 100) INTO route_buffer FROM temp_route;
 
     -- Select landmarks within the buffer
     CREATE TEMP TABLE temp_landmarks AS
@@ -267,24 +250,26 @@ BEGIN
         route_buffer
     );
 
-    -- Output landmarks to file
-    EXECUTE 'COPY (
-      SELECT json_build_object(
-          ''type'', ''FeatureCollection'',
-          ''features'', json_agg(
-              json_build_object(
-                  ''type'', ''Feature'',
-                  ''geometry'', ST_AsGeoJSON(l.geom)::json,
-                  ''properties'', to_jsonb(l) - ''geom''
-              )
-          )
-      )
-      FROM temp_landmarks l
-    ) TO ' || quote_literal(landmarks_output_file);
+    -- Collect landmarks into GeoJSON
+    SELECT json_build_object(
+        'type', 'FeatureCollection',
+        'features', json_agg(
+            json_build_object(
+                'type', 'Feature',
+                'geometry', ST_AsGeoJSON(l.geom)::json,
+                'properties', to_jsonb(l) - 'geom'
+            )
+        )
+    ) INTO landmarks_geojson
+    FROM temp_landmarks l;
 
   ELSE
     RAISE NOTICE 'No route found between the specified points.';
+    route_geojson := NULL;
+    landmarks_geojson := NULL;
   END IF;
+
+  RETURN QUERY SELECT route_geojson, landmarks_geojson;
 
 END;
 \$\$ LANGUAGE plpgsql;
