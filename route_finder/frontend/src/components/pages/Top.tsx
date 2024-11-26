@@ -15,12 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LocationPicker } from "../ui/LocationPicker";
 import { Location } from "@/lib/SearchResponse";
 import { LoadingSpinner } from "../ui/LoadingSpinner";
-
-const BOUNDING_BOX = {
-  // 35.7517,139.64131,35.8247,139.7316
-  southWest: { latitude: 35.7517, longitude: 139.64131 },
-  northEast: { latitude: 35.8247, longitude: 139.7316 },
-};
+import { BOUNDING_BOX } from "@/lib/Constants";
 
 function Top() {
   const navigate = useNavigate();
