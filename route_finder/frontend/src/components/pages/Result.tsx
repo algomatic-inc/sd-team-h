@@ -76,7 +76,7 @@ function Result(): JSX.Element {
   );
 
   return (
-    <div className="w-full">
+    <div className="w-full mt-24">
       <div className="flex justify-center">
         <div className="flex flex-col w-[800px]">
           <p>
