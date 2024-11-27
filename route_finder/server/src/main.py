@@ -16,6 +16,7 @@ from request_response_data import SearchRequest, Location, SearchResponse, Route
 from server.add_explanation import add_explanation
 from server.calculate_weights import calc_weights
 from server.extract_landmarks import extract_landmarks
+from server.generate_description import generate_description
 from server.get_routes import get_routes
 
 
@@ -90,6 +91,10 @@ def search():
     weights: dict[str, float] = calc_weights(preference)
     logger.error(f"[{__name__}] {weights=}")
 
+    # generate description
+    description: str = generate_description(preference, weights)
+    logger.error(f"[{__name__}] {description=}")
+
     # inference landmarks
     landmarks: list[str] = extract_landmarks(preference)
     logger.error(f"[{__name__}] {landmarks=}")
@@ -153,8 +158,7 @@ def search():
     )
     response: SearchResponse = SearchResponse(
         request=req,
-        # TODO: implement
-        paragraphs=[],
+        paragraphs=[description],
         routes=[route],
     )
     logger.error(f"[{__name__}] {response=}")
