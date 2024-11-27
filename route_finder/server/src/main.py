@@ -26,7 +26,7 @@ DB_USER: str = os.environ["DB_USER"]
 DB_PASSWORD: str = os.environ["DB_PASSWORD"]
 DB_HOST: str | None = os.getenv("DB_HOST")
 DB_PORT: str | None = os.getenv("DB_PORT")
-DB_INSTANCE_NAME: str | None = os.getenv("DB_INSTANCE_NAME")
+DB_INSTANCE_CONNECTION_NAME: str | None = os.getenv("DB_INSTANCE_CONNECTION_NAME")
 DB_NAME: str = os.environ["DB_NAME"]
 
 _HTTP_400_BAD_REQUEST: int = 400
@@ -41,7 +41,7 @@ if app.debug:
     CORS(app)
     db_url = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 else:
-    db_url = f'postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@/{DB_NAME}?unix_sock=/cloudsql/{DB_INSTANCE_NAME}/.s.PGSQL.5432'
+    db_url = f'postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@/{DB_NAME}?unix_sock=/cloudsql/{DB_INSTANCE_CONNECTION_NAME}/.s.PGSQL.5432'
 
 logger.error(f"[{__name__}] {db_url=}")
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
