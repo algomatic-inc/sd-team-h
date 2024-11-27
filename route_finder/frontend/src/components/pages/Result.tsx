@@ -11,6 +11,7 @@ import SearchInput from "@/components/ui/SearchInput";
 import { useLocation } from "react-router-dom";
 import { parseResponse, SearchResponse } from "@/lib/SearchResponse";
 import { RouteMap } from "../ui/RouteMap";
+import { BOUNDING_BOX } from "@/lib/Constants";
 
 function buildDefaultResponse(): SearchResponse {
   return {
@@ -75,9 +76,9 @@ function Result(): JSX.Element {
   );
 
   return (
-    <div className="w-full">
+    <div className="w-full mt-24">
       <div className="flex justify-center">
-        <div className="flex flex-col w-[640px]">
+        <div className="flex flex-col w-[800px]">
           <p>
             Result for:
             <span className="font-medium pl-2">
@@ -96,10 +97,14 @@ function Result(): JSX.Element {
             </div>
           ) : (
             <div className="pt-8">
-              <div className="text-lg font-medium">{selectedRoute.title}</div>
+              <div className="text-lg font-bold">{selectedRoute.title}</div>
               <div className="">{selectedRoute.description}</div>
               <div className="pt-4">
-                <RouteMap route={selectedRoute} />
+                <RouteMap
+                  route={selectedRoute}
+                  northEastBound={BOUNDING_BOX.northEast}
+                  southWestBound={BOUNDING_BOX.southWest}
+                />
               </div>
             </div>
           )}

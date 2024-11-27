@@ -1,0 +1,11 @@
+services:
+  server:
+    build:
+      context: .
+    env_file:
+      - ./.env
+    ports:
+      - ${HOST_PORT}:${CONTAINER_PORT}
+    volumes:
+      - ./src:/app/src
+      - ./requirements.txt:/app/requirements.txt
