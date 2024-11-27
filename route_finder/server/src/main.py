@@ -140,7 +140,7 @@ def search():
     # generate response
     route: Route = Route(
         title=explained_info["title"],
-        description=explained_info["description"],
+        description=explained_info["summary"],
         paths=[],
         path_geo_json={
             "type": "FeatureCollection",
