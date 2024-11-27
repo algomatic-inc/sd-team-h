@@ -3,7 +3,7 @@ import logging
 import textwrap
 from typing import Any
 
-from .model import get_model
+from models import get_model
 
 
 _logger = logging.getLogger(__name__)

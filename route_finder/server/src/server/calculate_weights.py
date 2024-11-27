@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 from constants import WEIGHT_LANDMARKS
-from server.model import get_model
+from models import get_model
 
 
 _logger = logging.getLogger(__name__)

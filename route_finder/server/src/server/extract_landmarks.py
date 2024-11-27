@@ -3,7 +3,7 @@ import textwrap
 from typing import Any
 
 from landmarks import LAMDMARKS_LIST
-from server.model import get_model
+from models import get_model
 
 
 _logger = logging.getLogger(__name__)
