@@ -6,18 +6,22 @@ from typing import Any
 from .model import get_model
 
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 MAX_RETRY_COUNT = 5
 
 
 def add_explanation(
-    preference: str, routes_geojson: Any, landmarks_geojson: Any
+    preference: str, routes_info: str, landmarks_info: str | None
 ) -> dict[str, Any]:
-    # generate prompt
+    _logger.error(f'[{__name__}] started.')
+
     prompt: str = textwrap.dedent(
         f"""
-        次の 1 つ目の JSON データを読み込んで、そのデータが示すルートの特徴を説明する文章を生成してください。
+        入力値のデータを読み込んで、そのデータが示すルートの特徴を説明する文章を生成してください。
+        # 入力値のデータに関する情報
+        - 入力値 1: ルートの情報を示す MultiLineString 型の GeoJSON データ
+        - 入力値 2: 見どころの情報を示す Point 型の GeoJSON データ
         # 出力する項目
         - title
         - description
@@ -25,9 +29,11 @@ def add_explanation(
         # 出力する項目に関する情報
         - title: ルート全体の特徴を表現するルートのタイトル
         - description: ルート全体の特徴の説明文
-        - details: ルート中に存在する '{preference}' の観点に適した見どころの場所の名前 (name) とその特徴の説明文 (description), 緯度 (latitude) と経度 (longitude) (最大 3 つ)
+        - details: ルート中に存在する '{preference}' の観点に適した見どころの場所の名前 (name), その場所の特徴の説明文 (description), 緯度 (latitude), 経度 (longitude)
         # ルール
-        - details の情報は、2 つ目の JSON データが存在する場合は、その JSON データを元に抽出すること。2 つ目の JSON データが存在しない場合は、JSON データを無視して生成すること。
+        - title, description は入力値 1 のルートデータを元に生成すること。
+        - details は入力値 2 の見どころデータを元に生成すること。ただし、入力値 2 の見どころデータが存在しない場合は入力値 1 のルートデータを元に生成すること。
+        - details に含める場所の数は最大 3 とすること。
         - 出力は次の出力例のように JSON 形式で出力すること。
         # 出力例
         例 1. {{
@@ -54,10 +60,10 @@ def add_explanation(
                 {{"name": "川口駅前商店街", "description": "様々な種類のお店が並び、飽きることなく楽しめます。", "latitude": 35.681236, "longitude": 139.767125}},
             ]
         }}
-        # JSON データ 1
-        {json.dumps(routes_geojson)}
-        # JSON データ 2
-        {json.dumps(landmarks_geojson)}
+        # 入力値 1: ルートデータ
+        {routes_info}
+        # 入力値 2: 見どころデータ
+        {landmarks_info}
         """
     )
 
@@ -72,21 +78,14 @@ def add_explanation(
                 "details" not in explained_info
             ):
                 raise Exception("Invalid explanation format.")
-
-            return explained_info
         except Exception as e:
-            logger.error(f"Failed to add explanation. {e=}")
-            if retry_count >= MAX_RETRY_COUNT:
+            _logger.error(f"[{__name__}] failed to add explanation. {e=}")
+
+            if retry_count < MAX_RETRY_COUNT:
+                _logger.error(f"[{__name__}] retry: {retry_count + 1}.")
+                continue
+            else:
                 raise e
 
-
-if __name__ == "__main__":
-    # read .geojson file
-    with open('route.geojson', 'r') as f:
-        data_geojson: Any = json.load(f)
-
-    # parse data to string
-    data_geojson_str: str = json.dumps(data_geojson)
-
-    res = add_explanation("緑が多い", data_geojson_str)
-    logger.error(res)
+    _logger.error(f'[{__name__}] completed.')
+    return explained_info
