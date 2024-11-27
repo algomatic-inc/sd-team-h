@@ -17,6 +17,8 @@ sqlalchemy = "^2.0.36"
 flask-sqlalchemy = "^3.1.1"
 psycopg2 = "^2.9.10"
 geojson-length = "^0.4.0"
+python-dotenv = "^1.0.1"
+pg8000 = "^1.31.2"
 
 
 [build-system]

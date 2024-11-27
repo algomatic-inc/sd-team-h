@@ -70,5 +70,5 @@ Overall deployment flow is as follows:
 
 You can do all these steps by running the following command:
 ```bash
-$ GOOGLE_API_KEY=<Your API Key> ./deploy.sh -g -r
+$ DB_INSTANCE_CONNECTION_NAME=<Your DB Instance Connection Name> DB_PASSWORD=<Your DB Password> GOOGLE_API_KEY=<Your API Key> ./deploy.sh -g -r
 ```

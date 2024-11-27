@@ -24,9 +24,11 @@ do
 done
 
 api_key="${GOOGLE_API_KEY}"
+db_instance_connection_name="${DB_INSTANCE_CONNECTION_NAME}"
+db_password="${DB_PASSWORD}"
 
-if [[ -z "${api_key}" ]]; then
-  echo "No GOOGLE_API_KEY specified."
+if [[ -z "${api_key}" || -z "${db_instance_connection_name}" || -z "${db_password}" ]]; then
+  echo "Please specify all the environment variables."
   exit 1
 fi
 
@@ -48,10 +50,16 @@ poetry export -f requirements.txt --output "${BUILD_DIR}/requirements.txt" --wit
 # Copy necessary files into build dir
 cp -r "${FEDIR}/dist" "${BUILD_DIR}"
 cp -r ${BEDIR}/src/* "${BUILD_DIR}"
+cp "${BEDIR}/.env.prd" "${BUILD_DIR}/.env"
 
 # Build an image
 cd "${DEPDIR}"
-docker buildx build --build-arg GOOGLE_API_KEY="${api_key}" --platform=linux/amd64 -t "${LOCAL_DOCKER_IMG}" .
+docker buildx build \
+  --build-arg DB_INSTANCE_CONNECTION_NAME="${db_instance_connection_name}" \
+  --build-arg DB_PASSWORD="${db_password}" \
+  --build-arg GOOGLE_API_KEY="${api_key}" \
+  --platform=linux/amd64 \
+  -t "${LOCAL_DOCKER_IMG}" .
 
 # Push
 if [[ "${push_to_gcp}" = "true" ]]; then
