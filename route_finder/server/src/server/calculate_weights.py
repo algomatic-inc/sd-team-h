@@ -1,5 +1,5 @@
-# import openai
 import logging
+from typing import Any
 
 from constants import WEIGHT_LANDMARKS
 from server.model import get_model
@@ -9,7 +9,8 @@ _logger = logging.getLogger(__name__)
 
 
 def calc_weights(query: str) -> dict[str, float]:
-    """Calculate 7 weights based on user query."""
+    _logger.error(f'[{__name__}] started.')
+
     avg_weight: float = (1 - WEIGHT_LANDMARKS) / 7
     weights_calculated: dict[str, float] = {
         "weight_length": avg_weight,
@@ -21,7 +22,7 @@ def calc_weights(query: str) -> dict[str, float]:
         "weight_isolation": avg_weight,
     }
 
-    prompt = (
+    prompt: str = (
         "# 目的\n"
         "あなたの気分や希望するルートの特徴を教えてください。それに応じて以下の7つの要素をどの程度重視するかを計算します。\n"
         "**weight_length, weight_green_index, weight_water_index, weight_shade_index, weight_slope_index, weight_road_safety, weight_isolation のみ出力する**\n\n"
@@ -47,8 +48,8 @@ def calc_weights(query: str) -> dict[str, float]:
     )
 
     try:
-        response = get_model().generate_content(prompt)
-        text = response.text
+        response: Any = get_model().generate_content(prompt)
+        text: str = response.text
 
         # Parse weights from response
         weights: dict[str, float] = {}
@@ -66,9 +67,8 @@ def calc_weights(query: str) -> dict[str, float]:
                 weights_calculated[key] = weights[key]
             else:
                 raise Exception(f"Invalid weight key: {key}")
-
-        return weights_calculated
     except Exception as e:
-        _logger.error(f"Failed to calculate weights. {e=}")
-        # Return default weights if error occurs
-        return weights_calculated
+        _logger.error(f"[{__name__}] failed to calculate weights. {e=}")
+
+    _logger.error(f'[{__name__}] completed.')
+    return weights_calculated

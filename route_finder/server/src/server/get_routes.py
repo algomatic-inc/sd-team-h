@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from sqlalchemy import text
 
@@ -24,7 +25,9 @@ def get_routes(
     weight_landmarks: float,
     landmarks: list[str],
 ) -> tuple[str, str | None]:
-    sql = text(
+    _logger.error(f'[{__name__}] started.')
+
+    sql: str = text(
         """
         SELECT * FROM generate_route(
             :weight_length,
@@ -46,7 +49,7 @@ def get_routes(
 
     for retry_count in range(MAX_RETRY_COUNT):
         try:
-            response = db.session.execute(
+            response: Any = db.session.execute(
                 sql,
                 {
                     "weight_length": weight_length,
@@ -64,16 +67,21 @@ def get_routes(
                     "end_lon": end_lon,
                 },
             )
-            row = response.fetchone()
+            row: Any = response.fetchone()
 
             if not row:
                 raise Exception("No route found.")
         except Exception as e:
-            _logger.error(f"Failed to get routes. {e=}")
-            if retry_count >= MAX_RETRY_COUNT:
+            _logger.error(f"[{__name__}] failed to get routes. {e=}")
+
+            if retry_count < MAX_RETRY_COUNT:
+                _logger.error(f"[{__name__}] retry: {retry_count + 1}.")
+                continue
+            else:
                 raise e
 
     route_info: str = row[0]
     landmarks_info: str | None = row[1] if len(row) > 1 else None
 
+    _logger.error(f'[{__name__}] completed.')
     return route_info, landmarks_info

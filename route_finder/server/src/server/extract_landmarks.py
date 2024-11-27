@@ -1,5 +1,6 @@
 import logging
 import textwrap
+from typing import Any
 
 from landmarks import LAMDMARKS_LIST
 from server.model import get_model
@@ -9,6 +10,8 @@ _logger = logging.getLogger(__name__)
 
 
 def extract_landmarks(preference: str) -> list[str]:
+    _logger.error(f'[{__name__}] started.')
+
     prompt: str = textwrap.dedent(
         f"""
         入力文の内容に関連するワードをワードリストから抽出してください。
@@ -29,11 +32,11 @@ def extract_landmarks(preference: str) -> list[str]:
 
     landmarks: list[str] = []
     try:
-        response = get_model().generate_content(prompt)
-        landmarks = response.text.split(",")
-
-        # return only landmarks in the landmarks list
-        return [landmark for landmark in landmarks if landmark in LAMDMARKS_LIST]
+        response: Any = get_model().generate_content(prompt)
+        landmarks: list[str] = response.text.split(",")
     except Exception as e:
-        _logger.error(f"Failed to extract landmarks. {e=}")
-        return landmarks
+        _logger.error(f"[{__name__}] failed to extract landmarks. {e=}")
+
+    _logger.error(f'[{__name__}] completed.')
+    # return only landmarks in the landmarks list
+    return [landmark for landmark in landmarks if landmark in LAMDMARKS_LIST]

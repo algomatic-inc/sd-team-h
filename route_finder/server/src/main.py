@@ -13,7 +13,7 @@ from geojson_length import calculate_distance, Unit
 from constants import WEIGHT_LANDMARKS
 from request_response_data import SearchRequest, Location, SearchResponse, Route, Place
 from server.add_explanation import add_explanation
-from server.calc_weight import calc_weights
+from server.calculate_weights import calc_weights
 from server.extract_landmarks import extract_landmarks
 from server.get_routes import get_routes
 

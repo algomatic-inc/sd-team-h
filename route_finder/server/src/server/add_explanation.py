@@ -69,7 +69,7 @@ def add_explanation(
 
     for retry_count in range(MAX_RETRY_COUNT):
         try:
-            response = get_model().generate_content(prompt)
+            response: Any = get_model().generate_content(prompt)
             explained_info: dict[str, Any] = json.loads(response.text)
 
             if (
