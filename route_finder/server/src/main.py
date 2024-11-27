@@ -14,6 +14,7 @@ from constants import WEIGHT_LANDMARKS
 from request_response_data import SearchRequest, Location, SearchResponse, Route, Place
 from server.add_explanation import add_explanation
 from server.calc_weight import calc_weights
+from server.extract_landmarks import extract_landmarks
 from server.get_routes import get_routes
 
 
@@ -85,9 +86,8 @@ def search():
     logger.error(f"{weights=}")
 
     # inference landmarks
-    # TODO: implement
-    # landmarks = inference_landmarks(preference)
-    # logger.error(f"{landmarks=}")
+    landmarks: list[str] = extract_landmarks(preference)
+    logger.error(f"{landmarks=}")
 
     # get info of routes and landmarks
     routes_info: str
@@ -107,8 +107,7 @@ def search():
         weight_road_safety=weights['weight_road_safety'],
         weight_isolation=weights['weight_isolation'],
         weight_landmarks=WEIGHT_LANDMARKS,
-        # TODO: replace with actual landmarks
-        landmarks=['bar', 'restaurant'],
+        landmarks=landmarks,
     )
     routes_info_dict: dict[str, Any] = {
         "type": "Feature",
