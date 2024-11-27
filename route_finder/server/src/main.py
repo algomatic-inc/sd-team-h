@@ -5,6 +5,7 @@ import logging
 import os
 from typing import Any
 
+from dotenv import load_dotenv
 from flask import Flask, send_from_directory, request, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -18,9 +19,13 @@ from server.extract_landmarks import extract_landmarks
 from server.get_routes import get_routes
 
 
-app = Flask(__name__, static_folder="dist", static_url_path="")
+_HTTP_400_BAD_REQUEST: int = 400
+
+load_dotenv()
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+app = Flask(__name__, static_folder="dist", static_url_path="")
 
 if app.debug:
     # Allow CORS from the React app running in development mode.
@@ -28,18 +33,15 @@ if app.debug:
     logger.error("debug mode")
 
 # configure connection to the database
-db_url = (
-    f'postgresql://'
-    f'{os.getenv("DB_USER")}:'
-    f'{os.getenv("DB_PASSWORD")}@'
-    f'{os.getenv("DB_HOST")}:'
-    f'{os.getenv("DB_PORT")}/'
-    f'{os.getenv("DB_NAME")}'
-)
+DB_USER: str = os.environ["DB_USER"]
+DB_PASSWORD: str = os.environ["DB_PASSWORD"]
+DB_HOST: str = os.environ["DB_HOST"]
+DB_PORT: str = os.environ["DB_PORT"]
+DB_NAME: str = os.environ["DB_NAME"]
+
+db_url: str = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 db = SQLAlchemy(app)
-
-_HTTP_400_BAD_REQUEST = 400
 
 
 @app.route("/")
@@ -51,14 +53,14 @@ def server():
 @app.route("/search")
 def search():
     """Search API endpoint."""
-    logger.error("process started.")
+    logger.error(f"[{__name__}] process started.")
 
     preference: str | None = request.args.get("q")
     start_location: str | None = request.args.get("s")
     end_location: str | None = request.args.get("e")
     # Delay seconds for emulating server delay.
     delay: str | None = request.args.get("delay")
-    logger.error(f"request: {preference=}, {start_location=}, {end_location=}")
+    logger.error(f"[{__name__}] request: {preference=}, {start_location=}, {end_location=}")
 
     # Validate the request.
     if not preference or not start_location or not end_location:
@@ -83,11 +85,11 @@ def search():
 
     # calculate weights of variables
     weights: dict[str, float] = calc_weights(preference)
-    logger.error(f"{weights=}")
+    logger.error(f"[{__name__}] {weights=}")
 
     # inference landmarks
     landmarks: list[str] = extract_landmarks(preference)
-    logger.error(f"{landmarks=}")
+    logger.error(f"[{__name__}] {landmarks=}")
 
     # get info of routes and landmarks
     routes_info: str
@@ -118,14 +120,14 @@ def search():
     # calculate
     # distance [meters]
     distance: float = calculate_distance(routes_info_dict, Unit.meters)
-    logger.error(f"{distance=}")
+    logger.error(f"[{__name__}] {distance=}")
     # duration [minutes]
     duration: int = int(distance / 1.4 / 60)
-    logger.error(f"{duration=}")
+    logger.error(f"[{__name__}] {duration=}")
 
     # add explanation
     explained_info: dict[str, Any] = add_explanation(preference, routes_info, landmarks_info)
-    logger.error(f"explained_info: {explained_info}")
+    logger.error(f"[{__name__}] {explained_info=}")
 
     # generate response
     route: Route = Route(
@@ -152,9 +154,9 @@ def search():
         paragraphs=[],
         routes=[route],
     )
-    logger.error(f"response: {response=}")
+    logger.error(f"[{__name__}] {response=}")
 
-    logger.error("process completed.")
+    logger.error(f"[{__name__}] process completed.")
     return jsonify(dataclasses.asdict(response))
 
 
