@@ -160,7 +160,7 @@ export function RouteMap({
           scaleControl={false}
           mapTypeControl={false}
           streetViewControl={false}
-          fullscreenControl={false}
+          fullscreenControl={true}
           mapId={import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? ""}
           restriction={mapRestriction}
           className="h-[240px] w-[240px] shrink-0 mt-10"
