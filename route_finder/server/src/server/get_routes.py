@@ -83,6 +83,8 @@ def get_routes(
                 continue
             else:
                 raise e
+        finally:
+            db.session.close()
 
     _logger.error(f'[{__name__}] completed.')
     return route_info, landmarks_info
