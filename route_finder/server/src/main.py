@@ -95,6 +95,10 @@ def search():
     description: str = generate_description(preference, weights)
     logger.error(f"[{__name__}] {description=}")
 
+    # generate description
+    description: str = generate_description(preference, weights)
+    logger.error(f"[{__name__}] {description=}")
+
     # inference landmarks
     landmarks: list[str] = extract_landmarks(preference)
     logger.error(f"[{__name__}] {landmarks=}")
