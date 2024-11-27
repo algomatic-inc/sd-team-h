@@ -78,11 +78,10 @@ def get_routes(
             db.session.rollback()
             _logger.error(f"[{__name__}] failed to get routes. {e=}")
 
-            if retry_count < MAX_RETRY_COUNT:
-                _logger.error(f"[{__name__}] retry: {retry_count + 1}.")
-                continue
-            else:
+            if retry_count > MAX_RETRY_COUNT:
                 raise e
+
+            _logger.error(f"[{__name__}] retry: {retry_count + 1}.")
         finally:
             db.session.close()
 
