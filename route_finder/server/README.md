@@ -16,7 +16,6 @@ Set `DB_PASSWORD`, `GOOGLE_API_KEY` in `.env`.
 
 ## Run local server
 ```shell
-$ cd ../
 $ docker compose up
 ```
 
