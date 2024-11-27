@@ -7,7 +7,6 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import SearchInput from "@/components/ui/SearchInput";
 import { useLocation } from "react-router-dom";
 import { parseResponse, SearchResponse } from "@/lib/SearchResponse";
 import { RouteMap } from "../ui/RouteMap";
@@ -85,7 +84,7 @@ function Result(): JSX.Element {
               {searchResponse.request.query}
             </span>
           </p>
-          <div className="pt-4 text-lg max-w-xl font-light">
+          <div className="pt-4 text-md w-[800px] font-light">
             {searchResponse.paragraphs.map((paragraph) => (
               <p>{paragraph}</p>
             ))}
@@ -114,24 +113,31 @@ function Result(): JSX.Element {
             <div>Other route candidates:</div>
             <Carousel
               opts={{ align: "start" }}
-              className="w-full max-w-lg pt-2"
+              className="w-full w-[800px] pt-2"
             >
               <CarouselContent>
-                <CarouselItem className="lg:basis-1/2">
+                <CarouselItem className="lg:basis-1/3">
                   <Card>
                     <CardHeader>
                       <CardTitle>Shaded route with greenery</CardTitle>
                     </CardHeader>
                   </Card>
                 </CarouselItem>
-                <CarouselItem className="lg:basis-1/2">
+                <CarouselItem className="lg:basis-1/3">
                   <Card>
                     <CardHeader>
                       <CardTitle>Shaded route with greenery</CardTitle>
                     </CardHeader>
                   </Card>
                 </CarouselItem>
-                <CarouselItem className="lg:basis-1/2">
+                <CarouselItem className="lg:basis-1/3">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Shaded route with greenery</CardTitle>
+                    </CardHeader>
+                  </Card>
+                </CarouselItem>
+                <CarouselItem className="lg:basis-1/3">
                   <Card>
                     <CardHeader>
                       <CardTitle>Shaded route with greenery</CardTitle>
@@ -142,12 +148,6 @@ function Result(): JSX.Element {
               <CarouselPrevious />
               <CarouselNext />
             </Carousel>
-          </div>
-
-          {/* Explore more */}
-          <div className="pt-4 w-[240pt]">
-            <div>Explore more:</div>
-            <SearchInput placeholder="Search for more routes" />
           </div>
         </div>
       </div>
