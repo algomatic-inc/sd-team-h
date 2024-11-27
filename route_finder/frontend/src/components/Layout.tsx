@@ -7,12 +7,14 @@ function Layout() {
   return (
     <div className="min-h-full w-screen">
       <Header />
-      <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? ""}>
-        <main className="flex-grow">
-          <Outlet />
-        </main>
-      </APIProvider>
-      <Footer />
+      <div>
+        <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? ""}>
+          <main className="flex-grow">
+            <Outlet />
+          </main>
+        </APIProvider>
+        <Footer />
+      </div>
     </div>
   );
 }

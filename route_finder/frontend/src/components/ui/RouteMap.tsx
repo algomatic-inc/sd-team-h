@@ -44,7 +44,9 @@ function PlaceItem({
 }: PlaceItemProps): JSX.Element {
   return (
     <div className="flex flex-row">
-      <PinWithTextIcon pinText={pinText} size={42}></PinWithTextIcon>
+      <div className="shrink-0">
+        <PinWithTextIcon pinText={pinText} size={42}></PinWithTextIcon>
+      </div>
       <div>
         <div className="font-bold">{name}</div>
         <div>{description}</div>
@@ -93,16 +95,14 @@ type RouteMapProps = {
   /** Route to display */
   route: Route;
   // If specified, the map will be bounded by these locations.
-  southWestBound?: Location;
-  northEastBound?: Location;
-  defaultCenter?: Location;
+  southWestBound: Location;
+  northEastBound: Location;
 };
 
 export function RouteMap({
   route,
   southWestBound,
   northEastBound,
-  defaultCenter = { latitude: 35.681236, longitude: 139.767125 },
 }: RouteMapProps): JSX.Element {
   if (!route.pathGeoJson) {
     return <div>Path is not available</div>;
@@ -116,6 +116,27 @@ export function RouteMap({
       return index.toString();
     }
   };
+  // Calculate center of the map by taking the average of all places.
+  // If there are no places, use the center of the bounding box.
+  const aggregatedLatLng = route.places.reduce(
+    (acc, place) => {
+      acc.latitude += place.location.latitude;
+      acc.longitude += place.location.longitude;
+      return acc;
+    },
+    { latitude: 0, longitude: 0 }
+  );
+  const center =
+    route.places.length === 0
+      ? {
+          lat: (southWestBound.latitude + northEastBound.latitude) / 2,
+          lng: (southWestBound.longitude + northEastBound.longitude) / 2,
+        }
+      : {
+          lat: aggregatedLatLng.latitude / route.places.length,
+          lng: aggregatedLatLng.longitude / route.places.length,
+        };
+
   const mapRestriction =
     southWestBound != null && northEastBound != null
       ? {
@@ -134,10 +155,7 @@ export function RouteMap({
         <PlaceList places={route.places} />
         <Map
           defaultZoom={13}
-          defaultCenter={{
-            lat: defaultCenter.latitude,
-            lng: defaultCenter.longitude,
-          }}
+          defaultCenter={center}
           zoomControl={false}
           scaleControl={false}
           mapTypeControl={false}
@@ -145,7 +163,7 @@ export function RouteMap({
           fullscreenControl={false}
           mapId={import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? ""}
           restriction={mapRestriction}
-          className="h-[240px] w-[240px]"
+          className="h-[240px] w-[240px] shrink-0 mt-10"
         />
         <GeoJsonLoader geoJson={route.pathGeoJson} />
         {route.places.map((place, index) => (
