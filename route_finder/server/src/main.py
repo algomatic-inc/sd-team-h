@@ -10,8 +10,10 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from geojson_length import calculate_distance, Unit
 
+from constants import WEIGHT_LANDMARKS
 from request_response_data import SearchRequest, Location, SearchResponse, Route, Place
 from server.add_explanation import add_explanation
+from server.calc_weight import calc_weights
 from server.get_routes import get_routes
 
 
@@ -79,30 +81,36 @@ def search():
         return jsonify({"error": "Invalid request."}), _HTTP_400_BAD_REQUEST
 
     # calculate weights of variables
+    weights: dict[str, float] = calc_weights(preference)
+    logger.error(f"{weights=}")
+
+    # inference landmarks
     # TODO: implement
+    # landmarks = inference_landmarks(preference)
+    # logger.error(f"{landmarks=}")
 
     # get info of routes and landmarks
     routes_info: str
     landmarks_info: str | None
 
-    # TODO: replace with actual weights
     routes_info, landmarks_info = get_routes(
         db,
-        0.1,  # weight_length
-        0.4,  # weight_green_index
-        0.0,  # weight_water_index
-        0.0,    # weight_shade_index
-        0.0,    # weight_slope_index
-        0.0,    # weight_road_safety
-        0.0,    # weight_isolation
-        0.5,    # weight_landmarks
-        ['bar', 'restaurant'],
-        start_loc_obj.latitude,  # start_lat
-        start_loc_obj.longitude,  # start_lon
-        end_loc_obj.latitude,  # end_lat
-        end_loc_obj.longitude,  # end_lon
+        start_lat=start_loc_obj.latitude,
+        start_lon=start_loc_obj.longitude,
+        end_lat=end_loc_obj.latitude,
+        end_lon=end_loc_obj.longitude,
+        weight_length=weights['weight_length'],
+        weight_green_index=weights['weight_green_index'],
+        weight_water_index=weights['weight_water_index'],
+        weight_shade_index=weights['weight_shade_index'],
+        weight_slope_index=weights['weight_slope_index'],
+        weight_road_safety=weights['weight_road_safety'],
+        weight_isolation=weights['weight_isolation'],
+        weight_landmarks=WEIGHT_LANDMARKS,
+        # TODO: replace with actual landmarks
+        landmarks=['bar', 'restaurant'],
     )
-    routes_info_dict: dict = {
+    routes_info_dict: dict[str, Any] = {
         "type": "Feature",
         "properties": {},
         "geometry": json.loads(routes_info)
@@ -112,7 +120,6 @@ def search():
     # distance [meters]
     distance: float = calculate_distance(routes_info_dict, Unit.meters)
     logger.error(f"{distance=}")
-
     # duration [minutes]
     duration: int = int(distance / 1.4 / 60)
     logger.error(f"{duration=}")

@@ -3,6 +3,10 @@ from sqlalchemy import text
 
 def get_routes(
     db,
+    start_lat: float,
+    start_lon: float,
+    end_lat: float,
+    end_lon: float,
     weight_length: float,
     weight_green_index: float,
     weight_water_index: float,
@@ -12,10 +16,6 @@ def get_routes(
     weight_isolation: float,
     weight_landmarks: float,
     landmarks: list[str],
-    start_lat: float,
-    start_lon: float,
-    end_lat: float,
-    end_lon: float,
 ) -> tuple[str, str | None]:
     sql = text(
         """
@@ -56,7 +56,8 @@ def get_routes(
         },
     )
 
-    route_info: str = response.fetchone()[0]
-    landmarks_info: str | None = response.fetchone()[1] if response.rowcount > 1 else None
+    row = response.fetchone()
+    route_info: str = row[0]
+    landmarks_info: str | None = row[1] if len(row) > 1 else None
 
     return route_info, landmarks_info

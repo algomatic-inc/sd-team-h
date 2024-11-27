@@ -1,17 +1,12 @@
 import json
 import logging
-import os
 import textwrap
 from typing import Any
 
-import google.generativeai as genai
+from .model import get_model
 
 
 logger = logging.getLogger(__name__)
-
-# configure google api
-genai.configure(api_key=os.environ['GOOGLE_API_KEY'])
-model = genai.GenerativeModel('gemini-pro')
 
 MAX_RETRY_COUNT = 5
 
@@ -28,11 +23,11 @@ def add_explanation(
         - description
         - details
         # 出力する項目に関する情報
-        - title: ルート全体の特徴を踏まえたルートのタイトル
+        - title: ルート全体の特徴を表現するルートのタイトル
         - description: ルート全体の特徴の説明文
-        - details: ルート中の特に '{preference}' の観点に適した見どころの場所の名前 (name) とその特徴の説明文 (description), 緯度 (latitude) と経度 (longitude) (最大 3 つ)
+        - details: ルート中に存在する '{preference}' の観点に適した見どころの場所の名前 (name) とその特徴の説明文 (description), 緯度 (latitude) と経度 (longitude) (最大 3 つ)
         # ルール
-        - details は、2 つ目の JSON データが渡される場合は、その JSON データを元に抽出すること。JSON データが 1 つしか渡されない場合は、1 つ目の JSON データを元に抽出すること。
+        - details の情報は、2 つ目の JSON データが存在する場合は、その JSON データを元に抽出すること。2 つ目の JSON データが存在しない場合は、JSON データを無視して生成すること。
         - 出力は次の出力例のように JSON 形式で出力すること。
         # 出力例
         例 1. {{
@@ -68,7 +63,7 @@ def add_explanation(
 
     for retry_count in range(MAX_RETRY_COUNT):
         try:
-            response = model.generate_content(prompt)
+            response = get_model().generate_content(prompt)
             explained_info: dict[str, Any] = json.loads(response.text)
 
             if (
