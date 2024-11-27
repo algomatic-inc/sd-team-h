@@ -3,12 +3,11 @@ import logging
 import textwrap
 from typing import Any
 
+from constants import MAX_RETRY_COUNT
 from models import get_model
 
 
 _logger = logging.getLogger(__name__)
-
-MAX_RETRY_COUNT = 5
 
 
 def add_explanation(

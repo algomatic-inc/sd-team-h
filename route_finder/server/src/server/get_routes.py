@@ -3,10 +3,10 @@ from typing import Any
 
 from sqlalchemy import text
 
+from constants import MAX_RETRY_COUNT
+
 
 _logger = logging.getLogger(__name__)
-
-MAX_RETRY_COUNT = 5
 
 
 def get_routes(
@@ -71,16 +71,17 @@ def get_routes(
 
             if not row:
                 raise Exception("No route found.")
+
+            route_info: str = row[0]
+            landmarks_info: str | None = row[1] if len(row) > 1 else None
         except Exception as e:
+            _logger.error(f"[{__name__}] failed to get routes. {e=}")
+
             if retry_count < MAX_RETRY_COUNT:
                 _logger.error(f"[{__name__}] retry: {retry_count + 1}.")
                 continue
             else:
-                _logger.error(f"[{__name__}] failed to get routes. {e=}")
                 raise e
-
-    route_info: str = row[0]
-    landmarks_info: str | None = row[1] if len(row) > 1 else None
 
     _logger.error(f'[{__name__}] completed.')
     return route_info, landmarks_info
