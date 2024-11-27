@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" >
+<style>
+  .hoge {
+    font: 8px sans;
+    fill: white;
+   }
+</style>
+  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 1  11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z" fill="#D34B36" stroke="#B63828" strokeWidth="0.5" />
+  <text x="7" y="13" class="hoge">sa</text>
+</svg>
