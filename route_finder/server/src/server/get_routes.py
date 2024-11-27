@@ -75,6 +75,7 @@ def get_routes(
             route_info: str = row[0]
             landmarks_info: str | None = row[1] if len(row) > 1 else None
         except Exception as e:
+            db.session.rollback()
             _logger.error(f"[{__name__}] failed to get routes. {e=}")
 
             if retry_count < MAX_RETRY_COUNT:
