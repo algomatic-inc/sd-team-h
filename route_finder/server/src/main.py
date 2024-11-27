@@ -19,27 +19,30 @@ from server.extract_landmarks import extract_landmarks
 from server.get_routes import get_routes
 
 
-_HTTP_400_BAD_REQUEST: int = 400
-
 load_dotenv()
+
+DB_USER: str = os.environ["DB_USER"]
+DB_PASSWORD: str = os.environ["DB_PASSWORD"]
+DB_HOST: str | None = os.getenv("DB_HOST")
+DB_PORT: str | None = os.getenv("DB_PORT")
+DB_INSTANCE_NAME: str | None = os.getenv("DB_INSTANCE_NAME")
+DB_NAME: str = os.environ["DB_NAME"]
+
+_HTTP_400_BAD_REQUEST: int = 400
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 app = Flask(__name__, static_folder="dist", static_url_path="")
 
 if app.debug:
+    logger.error("debug mode")
     # Allow CORS from the React app running in development mode.
     CORS(app)
-    logger.error("debug mode")
+    db_url = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+else:
+    db_url = f'postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@/{DB_NAME}?unix_sock=/cloudsql/{DB_INSTANCE_NAME}/.s.PGSQL.5432'
 
-# configure connection to the database
-DB_USER: str = os.environ["DB_USER"]
-DB_PASSWORD: str = os.environ["DB_PASSWORD"]
-DB_HOST: str = os.environ["DB_HOST"]
-DB_PORT: str = os.environ["DB_PORT"]
-DB_NAME: str = os.environ["DB_NAME"]
-
-db_url: str = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+logger.error(f"[{__name__}] {db_url=}")
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 db = SQLAlchemy(app)
 

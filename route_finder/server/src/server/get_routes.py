@@ -72,12 +72,11 @@ def get_routes(
             if not row:
                 raise Exception("No route found.")
         except Exception as e:
-            _logger.error(f"[{__name__}] failed to get routes. {e=}")
-
             if retry_count < MAX_RETRY_COUNT:
                 _logger.error(f"[{__name__}] retry: {retry_count + 1}.")
                 continue
             else:
+                _logger.error(f"[{__name__}] failed to get routes. {e=}")
                 raise e
 
     route_info: str = row[0]
