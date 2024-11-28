@@ -45,7 +45,7 @@ def add_explanation(
             "details": [
                 {{"name": "代々木公園", "description": "木々のトンネルをくぐり抜けながら静かな空気を楽しめます。", "latitude": 35.681236, "longitude": 139.767125}},
                 {{"name": "皇居外苑", "description": "四季折々の景色が広がり、春には桜、秋には紅葉が見事です。", "latitude": 35.681236, "longitude": 139.767125}},
-                {{"name": "井の頭恩賜公園", "description": "広々とした緑地と水辺の景色が特徴的で、リラックスした時間を提供してくれます。", "latitude": 35.681236, "longitude": 139.767125}},
+                {{"name": "井の頭恩賜公園", "description": "広々とした緑地と水辺の景色が特徴的で、リラックスした時間を提供してくれます。", "latitude": 35.681236, "longitude": 139.767125}}
             ]
         }}
         例 2. {{
@@ -54,7 +54,7 @@ def add_explanation(
             "details": [
                 {{"name": "隅田川", "description": "東京を流れる主要な川で、桜並木や屋形船など四季折々の風景が楽しめる観光名所です。", "latitude": 35.681236, "longitude": 139.767125}},
                 {{"name": "浅草", "description": "東京の下町情緒あふれる観光地で、浅草寺や雷門、仲見世通りなど歴史と文化を感じるスポットが魅力です。", "latitude": 35.681236, "longitude": 139.767125}},
-                {{"name": "浅草寺", "description": "東京最古の寺院で、雷門や五重塔などが有名。年間を通じて多くの参拝者が訪れる人気の観光スポットです。", "latitude": 35.681236, "longitude": 139.767125}},
+                {{"name": "浅草寺", "description": "東京最古の寺院で、雷門や五重塔などが有名。年間を通じて多くの参拝者が訪れる人気の観光スポットです。", "latitude": 35.681236, "longitude": 139.767125}}
             ]
         }}
         # 入力値 1: ルートデータ
@@ -78,7 +78,7 @@ def add_explanation(
             ):
                 raise Exception("Invalid explanation format.")
         except Exception as e:
-            _logger.error(f"[{__name__}] failed to add explanation. {e=}")
+            _logger.error(f"[{__name__}] failed to add explanation. {response.text} {e=}")
 
             if retry_count > MAX_RETRY_COUNT:
                 raise e
