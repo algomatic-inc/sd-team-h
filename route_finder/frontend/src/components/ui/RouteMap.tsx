@@ -1,4 +1,4 @@
-import { Place, Route } from "@/lib/SearchResponse";
+import { Place, Route, SearchRequest } from "@/lib/SearchResponse";
 import {
   AdvancedMarker,
   APIProvider,
@@ -57,6 +57,16 @@ function PlaceItem({
   );
 }
 
+const getPinText = (index: number, places: Place[]) => {
+  if (index === 0) {
+    return "S";
+  } else if (index === places.length - 1) {
+    return "E";
+  } else {
+    return index.toString();
+  }
+};
+
 type PlaceListProps = {
   /** List of places to display */
   places: Place[];
@@ -83,7 +93,7 @@ function PlaceList({ places }: PlaceListProps): JSX.Element {
         >
           <PlaceItem
             key={index}
-            pinText={index.toString()}
+            pinText={getPinText(index, places)}
             name={place.name}
             description={place.description}
           />
@@ -98,6 +108,9 @@ type MarkerWithInfoWindowProps = {
   title: string;
   description: string;
   pinText: string;
+  markerIndex: number;
+  openedInfoWindowIndex: number;
+  onInfoWindowOpen: (index: number) => void;
 };
 
 // See https://visgl.github.io/react-google-maps/docs/api-reference/components/info-window
@@ -106,14 +119,16 @@ function MarkerWithInfoWindow({
   title,
   description,
   pinText,
+  markerIndex,
+  openedInfoWindowIndex,
+  onInfoWindowOpen,
 }: MarkerWithInfoWindowProps): JSX.Element {
   const [markerRef, marker] = useAdvancedMarkerRef();
-  const [infoWindowShown, setInfoWindowShown] = useState(false);
-  const handleMarkerClick = useCallback(
-    () => setInfoWindowShown((isShown) => !isShown),
-    []
-  );
-  const handleClose = useCallback(() => setInfoWindowShown(false), []);
+  const infoWindowShown = markerIndex === openedInfoWindowIndex;
+  const handleMarkerClick = useCallback(() => {
+    onInfoWindowOpen(markerIndex);
+  }, []);
+  const handleClose = useCallback(() => onInfoWindowOpen(-1), []);
 
   return (
     <>
@@ -130,8 +145,10 @@ function MarkerWithInfoWindow({
 
       {infoWindowShown && (
         <InfoWindow anchor={marker} onClose={handleClose}>
-          <h2 className="font-lg">{title}</h2>
-          <p>{description}</p>
+          <div className="max-w-80">
+            <div className="font-lg font-bold">{title}</div>
+            <p>{description}</p>
+          </div>
         </InfoWindow>
       )}
     </>
@@ -139,6 +156,7 @@ function MarkerWithInfoWindow({
 }
 
 type RouteMapProps = {
+  request: SearchRequest;
   /** Route to display */
   route: Route;
   // If specified, the map will be bounded by these locations.
@@ -147,25 +165,38 @@ type RouteMapProps = {
 };
 
 export function RouteMap({
+  request,
   route,
   southWestBound,
   northEastBound,
 }: RouteMapProps): JSX.Element {
+  const [selectedPlaceIndex, setSelectedPlaceIndex] = useState(-1);
+
   if (!route.pathGeoJson) {
     return <div>Path is not available</div>;
   }
-  const getPinText = (index: number) => {
-    if (index === 0) {
-      return "S";
-    } else if (index === route.places.length - 1) {
-      return "E";
-    } else {
-      return index.toString();
-    }
+
+  // Add start and end to the list of places.
+  const modifiedRoute: Route = {
+    ...route,
+    places: [
+      {
+        name: "スタート地点",
+        description: "冒険の始まりとなる静かな場所",
+        location: request.startLocation,
+      },
+      ...route.places,
+      {
+        name: "ゴール地点",
+        description: "道の終わりに広がる、ほっとできる場所",
+        location: request.endLocation,
+      },
+    ],
   };
+
   // Calculate center of the map by taking the average of all places.
   // If there are no places, use the center of the bounding box.
-  const aggregatedLatLng = route.places.reduce(
+  const aggregatedLatLng = modifiedRoute.places.reduce(
     (acc, place) => {
       acc.latitude += place.location.latitude;
       acc.longitude += place.location.longitude;
@@ -174,14 +205,14 @@ export function RouteMap({
     { latitude: 0, longitude: 0 }
   );
   const center =
-    route.places.length === 0
+    modifiedRoute.places.length === 0
       ? {
           lat: (southWestBound.latitude + northEastBound.latitude) / 2,
           lng: (southWestBound.longitude + northEastBound.longitude) / 2,
         }
       : {
-          lat: aggregatedLatLng.latitude / route.places.length,
-          lng: aggregatedLatLng.longitude / route.places.length,
+          lat: aggregatedLatLng.latitude / modifiedRoute.places.length,
+          lng: aggregatedLatLng.longitude / modifiedRoute.places.length,
         };
 
   // const mapRestriction =
@@ -200,7 +231,7 @@ export function RouteMap({
   return (
     <div className="flex flex-row gap-8">
       <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? ""}>
-        <PlaceList places={route.places} />
+        <PlaceList places={modifiedRoute.places} />
         <Map
           defaultZoom={13}
           defaultCenter={center}
@@ -214,13 +245,16 @@ export function RouteMap({
           className="h-[240px] w-[240px] shrink-0 mt-10"
         />
         <GeoJsonLoader geoJson={route.pathGeoJson} />
-        {route.places.map((place, index) => (
+        {modifiedRoute.places.map((place, index) => (
           <MarkerWithInfoWindow
             key={index}
             location={place.location}
             title={place.name}
             description={place.description}
-            pinText={getPinText(index)}
+            pinText={getPinText(index, modifiedRoute.places)}
+            markerIndex={index}
+            openedInfoWindowIndex={selectedPlaceIndex}
+            onInfoWindowOpen={setSelectedPlaceIndex}
           />
         ))}
       </APIProvider>

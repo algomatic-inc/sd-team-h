@@ -100,6 +100,7 @@ function Result(): JSX.Element {
               <div className="">{selectedRoute.description}</div>
               <div className="pt-4">
                 <RouteMap
+                request={searchResponse.request}
                   route={selectedRoute}
                   northEastBound={BOUNDING_BOX.northEast}
                   southWestBound={BOUNDING_BOX.southWest}
