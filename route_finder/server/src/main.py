@@ -43,7 +43,6 @@ if app.debug:
 else:
     db_url = f'postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@/{DB_NAME}?unix_sock=/cloudsql/{DB_INSTANCE_CONNECTION_NAME}/.s.PGSQL.5432'
 
-logger.error(f"[{__name__}] {db_url=}")
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 db = SQLAlchemy(app)
 

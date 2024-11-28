@@ -34,7 +34,7 @@ def add_explanation(
         - 生成する全ての情報は入力値 3 の観点に適したものであること。
         - title, summary は入力値 1 のルートデータを元に生成すること。
         - summary の文字数は 150 文字以上 200 文字以下とすること。
-        - details は入力値 2 の見どころデータを元に生成すること。ただし、入力値 2 の見どころデータが存在しない場合は入力値 1 のルートデータを元に生成すること。
+        - details は入力値 2 の見どころデータを元に生成すること。ただし、入力値 2 が不足している場合は新規に生成すること。
         - details に含める場所の数は最大 3 とすること。
         - details の各要素の description の文字数は 50 文字以上 100 文字以下とすること。
         - 出力は次の出力例のように JSON 形式で出力すること。
@@ -80,11 +80,10 @@ def add_explanation(
         except Exception as e:
             _logger.error(f"[{__name__}] failed to add explanation. {e=}")
 
-            if retry_count < MAX_RETRY_COUNT:
-                _logger.error(f"[{__name__}] retry: {retry_count + 1}.")
-                continue
-            else:
+            if retry_count > MAX_RETRY_COUNT:
                 raise e
+
+            _logger.error(f"[{__name__}] retry: {retry_count + 1}.")
 
     _logger.error(f'[{__name__}] completed.')
     return explained_info
